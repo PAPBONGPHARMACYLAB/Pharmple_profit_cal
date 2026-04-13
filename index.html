@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="index.css">
+</head>
+
+<body>
+  <div class="container">
+    <header>
+      <h1>약국 수익 계산기</h1>
+      <p class="subtitle">자동 데이터 추출 및 빠른 수익성 평가</p>
+    </header>
+
+    <div class="card action-card">
+      <div class="form-group">
+        <label for="site-select">정보 가져올 사이트</label>
+        <select id="site-select">
+          <option value="pharmple">팜플</option>
+          <option value="pharmall">팜올플러스</option>
+          <option value="dailypharm">데일리팜</option>
+        </select>
+      </div>
+      <button id="extract-btn" class="btn primary-btn">데이터 가져오기</button>
+      <p id="extract-status" class="status-msg"></p>
+    </div>
+
+    <div class="card input-card">
+      <h2>투자 및 고정비용</h2>
+      <div class="grid-2">
+        <div class="input-group">
+          <label>1. 보증금</label>
+          <input type="text" id="v1_deposit" class="currency-input" placeholder="0원">
+        </div>
+        <div class="input-group">
+          <label>2. 월세[부가세포함](임차료)</label>
+          <input type="text" id="v2_rent" class="currency-input" placeholder="0원">
+        </div>
+        <div class="input-group">
+          <label>3. 관리비</label>
+          <input type="text" id="v3_maintenance" class="currency-input" placeholder="0원">
+        </div>
+        <div class="input-group">
+          <label>4. 권리금(인테리어)</label>
+          <input type="text" id="v4_premium" class="currency-input" placeholder="0원">
+        </div>
+        <div class="input-group">
+          <label>5. 컨설팅비</label>
+          <input type="text" id="v5_consulting" class="currency-input" placeholder="0원">
+        </div>
+        <div class="input-group">
+          <label>6. 약국 평수 (평)</label>
+          <input type="number" id="v6_size" min="0" placeholder="0">
+        </div>
+        <div class="input-group">
+          <label>17. 대출금액</label>
+          <input type="text" id="v17_loan" class="currency-input" placeholder="0원">
+        </div>
+        <div class="input-group">
+          <label>18. 이자율 (%)</label>
+          <input type="number" id="v18_interest_rate" min="0" step="0.1" placeholder="0">
+        </div>
+      </div>
+    </div>
+
+    <div class="card input-card">
+      <h2>매출 및 조제료</h2>
+      <div class="grid-2">
+        <div class="input-group">
+          <label>7. 조제료</label>
+          <input type="text" id="v7_dispensing" class="currency-input" placeholder="0원">
+        </div>
+        <div class="input-group">
+          <label>8. 비급여 조제료</label>
+          <input type="text" id="v8_noncov_disp" class="currency-input" placeholder="0원">
+        </div>
+        <div class="input-group">
+          <label>9. 비급여 약가마진</label>
+          <input type="text" id="v9_noncov_margin" class="currency-input" placeholder="0원">
+        </div>
+        <div class="input-group">
+          <label>14. 한달 평균 약제비</label>
+          <input type="text" id="v14_drug_cost" class="currency-input" placeholder="0원">
+        </div>
+        <div class="input-group">
+          <label>10. 일일 매약 매출</label>
+          <input type="text" id="v10_daily_otc" class="currency-input" placeholder="0원">
+        </div>
+        <div class="input-group">
+          <label>13. 영업일수 (일)</label>
+          <input type="number" id="v13_days" min="0" placeholder="0">
+        </div>
+        <div class="input-group">
+          <label>11. 월 매약 매출</label>
+          <input type="text" id="v11_monthly_otc" placeholder="0원" readonly class="readonly-input currency-input">
+        </div>
+        <div class="input-group">
+          <label>12. 매약 마진률 (%)</label>
+          <input type="number" id="v12_otc_margin_rate" min="0" placeholder="0">
+        </div>
+        <div class="input-group full-width">
+          <label>12-1. 월 매약 마진</label>
+          <input type="text" id="v12_1_monthly_otc_margin" placeholder="0원" readonly
+            class="readonly-input currency-input">
+        </div>
+      </div>
+    </div>
+
+    <div class="card input-card">
+      <h2>운영 비용 및 기타</h2>
+      <div class="grid-2">
+        <div class="input-group">
+          <label>15. 약사 급여</label>
+          <input type="text" id="v15_pharmacist_salary" class="currency-input" placeholder="0원">
+        </div>
+        <div class="input-group">
+          <label>16. 직원 급여</label>
+          <input type="text" id="v16_staff_salary" class="currency-input" placeholder="0원">
+        </div>
+        <div class="input-group">
+          <label>19. 기타잡비(세무,화재,약사회비,기타 등등)</label>
+          <input type="text" id="v19_etc_expense" class="currency-input" placeholder="0원">
+        </div>
+        <div class="input-group">
+          <label>20. 주당 영업시간 (시간)</label>
+          <input type="number" id="v20_weekly_hours" min="0" placeholder="0">
+        </div>
+        <div class="input-group">
+          <label>21. 소모품비 (조제료×1.5%)</label>
+          <input type="text" id="v21_supplies" placeholder="0원" readonly class="readonly-input currency-input">
+        </div>
+        <div class="input-group">
+          <label>22. 직원 식비</label>
+          <input type="text" id="v22_meal" class="currency-input" placeholder="0원">
+        </div>
+      </div>
+    </div>
+
+    <button id="calculate-btn" class="btn success-btn full-width">바로 계산하기</button>
+
+    <div class="card result-card" id="results-pane" style="display: none;">
+      <h2>계산 결과</h2>
+      <div class="result-item highlight">
+        <span class="result-label">1. 세전 월 순수익</span>
+        <span class="result-value" id="res_pretax">0원</span>
+      </div>
+      <div class="result-item highlight-blue">
+        <span class="result-label">2. 세후 월 순수익</span>
+        <span class="result-value" id="res_posttax">0원</span>
+      </div>
+      <div class="result-item">
+        <span class="result-label">3. 약국 개국시 시급</span>
+        <span class="result-value" id="res_hourly">0원</span>
+      </div>
+      <div class="result-item">
+        <span class="result-label">4. PER</span>
+        <span class="result-value" id="res_per">0</span>
+      </div>
+      <div class="result-item">
+        <span class="result-label">5. 추가 재고 인수 비용</span>
+        <span class="result-value" id="res_add_inventory">0원</span>
+      </div>
+    </div>
+  </div>
+
+  <script src="index.js"></script>
+</body>
+
+</html>
