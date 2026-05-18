@@ -1,14 +1,29 @@
-// Elements
+// index.js
+
+// ── 탭 전환 ────────────────────────────────────────────
+function switchTab(tab) {
+  document.getElementById('pane-calc').style.display = tab === 'calc' ? 'flex' : 'none';
+  document.getElementById('pane-saved').style.display = tab === 'saved' ? 'flex' : 'none';
+
+  document.getElementById('tab-calc').classList.toggle('active', tab === 'calc');
+  document.getElementById('tab-saved').classList.toggle('active', tab === 'saved');
+
+  if (tab === 'saved') {
+    window.saveAPI.renderSavedList();
+  }
+}
+
+// ── Elements ──────────────────────────────────────────
 const extractBtn = document.getElementById('extract-btn');
 const calculateBtn = document.getElementById('calculate-btn');
 const siteSelect = document.getElementById('site-select');
 const statusMsg = document.getElementById('extract-status');
 const resultsPane = document.getElementById('results-pane');
 
-// Inputs
+// ── 입력 필드 IDs ─────────────────────────────────────
 const ids = [
   'v1_deposit', 'v2_rent', 'v3_maintenance', 'v4_premium', 'v5_consulting',
-  'v6_size', 'v7_dispensing', 'v8_noncov_disp', 'v9_noncov_margin', 
+  'v6_size', 'v7_dispensing', 'v8_noncov_disp', 'v9_noncov_margin',
   'v10_daily_otc', 'v11_monthly_otc', 'v12_otc_margin_rate', 'v12_1_monthly_otc_margin',
   'v13_days', 'v14_drug_cost', 'v15_pharmacist_salary', 'v16_staff_salary',
   'v17_loan', 'v18_interest_rate', 'v19_etc_expense', 'v20_weekly_hours',
@@ -20,6 +35,14 @@ ids.forEach(id => {
   inputs[id] = document.getElementById(id);
 });
 
+// ── 포커스 시 전체 선택 ───────────────────────────────
+const zeroDefaultIds = ['v18_interest_rate', 'v13_days', 'v12_otc_margin_rate', 'v20_weekly_hours'];
+zeroDefaultIds.forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('focus', () => el.select());
+});
+
+// ── 통화 포맷 ─────────────────────────────────────────
 const currencyIds = [
   'v1_deposit', 'v2_rent', 'v3_maintenance', 'v4_premium', 'v5_consulting',
   'v7_dispensing', 'v8_noncov_disp', 'v9_noncov_margin', 'v10_daily_otc',
@@ -28,10 +51,8 @@ const currencyIds = [
   'v21_supplies', 'v22_meal'
 ];
 
-// formatting function for UI
 function formatInputCurrency(val) {
   if (!val && val !== 0) return '';
-  // remove non-digits
   let num = parseFloat(String(val).replace(/[^0-9\.]/g, '')) || 0;
   return Math.round(num).toLocaleString('ko-KR') + '원';
 }
@@ -47,18 +68,14 @@ function setFormatted(id, num) {
   inputs[id].value = formatInputCurrency(num);
 }
 
-// Add event listeners for focus/blur on currency inputs
 currencyIds.forEach(id => {
   const el = inputs[id];
   if (!el) return;
-  
   el.addEventListener('focus', () => {
     if (el.readOnly) return;
-    // On focus, show raw number to edit easily
     let raw = getRawNum(id);
     el.value = raw > 0 ? raw : '';
   });
-  
   el.addEventListener('blur', () => {
     if (el.readOnly) return;
     let raw = getRawNum(id);
@@ -68,148 +85,216 @@ currencyIds.forEach(id => {
       el.value = '';
     }
   });
-  
-  // also allow calculating dynamically on typing if needed
   if (id === 'v10_daily_otc') el.addEventListener('input', updateDerivedOTC);
 });
 
-// Update derived fields
+// ── 파생 필드 업데이트 ────────────────────────────────
 function updateDerivedOTC() {
   const v10 = getRawNum('v10_daily_otc');
   const v13 = getRawNum('v13_days');
-  const v12 = getRawNum('v12_otc_margin_rate'); // %
-  
-  const monthlyOtc = v10 * v13;
-  const monthlyOtcMargin = v10 * v13 * (v12 / 100);
-  
-  setFormatted('v11_monthly_otc', monthlyOtc);
-  setFormatted('v12_1_monthly_otc_margin', monthlyOtcMargin);
+  const v12 = getRawNum('v12_otc_margin_rate');
+  setFormatted('v11_monthly_otc', v10 * v13);
+  setFormatted('v12_1_monthly_otc_margin', v10 * v13 * (v12 / 100));
 }
 
-// 소모품비 = 조제료 * 1.5% 자동 계산
 function updateSupplies() {
   const dispensing = getRawNum('v7_dispensing');
-  const supplies = dispensing * 0.015;
-  setFormatted('v21_supplies', supplies);
+  setFormatted('v21_supplies', dispensing * 0.015);
 }
 
 inputs['v13_days'].addEventListener('input', updateDerivedOTC);
 inputs['v12_otc_margin_rate'].addEventListener('input', updateDerivedOTC);
-
-// v7 조제료 변경 시 소모품비 반영
 inputs['v7_dispensing'].addEventListener('blur', updateSupplies);
 
-// Format output text
+// ── 결과 포맷 ─────────────────────────────────────────
 function formatOutputCurrency(num) {
   return Math.round(num).toLocaleString('ko-KR') + '원';
 }
 
-// Calculate logic
-calculateBtn.addEventListener('click', () => {
+// ── 계산 실행 (토큰 소비) ─────────────────────────────
+calculateBtn.addEventListener('click', async () => {
+  // 토큰 확인
+  const available = await window.tokenAPI.getAvailableTokens();
+  if (available <= 0) {
+    window.tokenAPI.showTokenModal();
+    return;
+  }
+
+  // 토큰 차감
+  try {
+    await window.tokenAPI.consumeToken();
+  } catch (e) {
+    window.tokenAPI.showTokenModal();
+    return;
+  }
+
+  // ── 계산 로직 ──
   const v = {};
-  ids.forEach(id => {
-    v[id] = getRawNum(id);
-  });
+  ids.forEach(id => { v[id] = getRawNum(id); });
 
-  // Calculate 12-1 
   const monthlyOtcMargin = v.v10_daily_otc * v.v13_days * (v.v12_otc_margin_rate / 100);
-
-  // 1. 수입(7+8+9+12-1+14*3.5%) - 비용(2+3+15+16+17*18/12+19+21+22) = 세전 월 순수익
   const income = v.v7_dispensing + v.v8_noncov_disp + v.v9_noncov_margin + monthlyOtcMargin + (v.v14_drug_cost * 0.035);
-  // 이자 비용: 대출금액 * 이자율(%) / 100 / 12
   const interest = v.v17_loan * (v.v18_interest_rate / 100) / 12;
-  // 소모품비 = 조제료 * 1.5%
   const supplies = v.v7_dispensing * 0.015;
   const expense = v.v2_rent + v.v3_maintenance + v.v15_pharmacist_salary + v.v16_staff_salary + interest + v.v19_etc_expense + supplies + v.v22_meal;
-  
+
   const pretax = income - expense;
-
-  // 2. 세후 월 순수익 = 1번 * 0.9
   const posttax = pretax * 0.9;
-
-  // 3. 약국 개국시 시급 = 1번/20번/4번
-  let hourly = 0;
-  if (v.v20_weekly_hours > 0) {
-    hourly = pretax / v.v20_weekly_hours / 4;
-  }
-
-  // 4. PER = (4+5)/1/12
-  let per = 0;
-  if (pretax > 0) {
-    per = (v.v4_premium + v.v5_consulting) / pretax / 12;
-  }
-
-  // 5. 추가 재고 인수 비용(전문+일반약 인수비용) = 14*130%
+  let hourly = v.v20_weekly_hours > 0 ? pretax / v.v20_weekly_hours / 4 : 0;
+  let per = pretax > 0 ? (v.v4_premium + v.v5_consulting) / pretax / 12 : 0;
   const addInventory = v.v14_drug_cost * 1.3;
 
-  // Result UI Mapping
   document.getElementById('res_pretax').textContent = formatOutputCurrency(pretax);
   document.getElementById('res_posttax').textContent = formatOutputCurrency(posttax);
   document.getElementById('res_hourly').textContent = formatOutputCurrency(hourly);
-  document.getElementById('res_per').textContent = per.toFixed(2);
+
+  const perEl = document.getElementById('res_per');
+  if (per === 0) {
+    perEl.textContent = '0';
+  } else if (per <= 2.30) {
+    perEl.innerHTML = `<span style="color: #10B981; font-weight: bold;">${per.toFixed(2)} (안정)</span>`;
+  } else if (per <= 3.00) {
+    perEl.innerHTML = `<span style="color: #CA8A04; font-weight: bold;">${per.toFixed(2)} (적정)</span>`;
+  } else {
+    perEl.innerHTML = `<span style="color: #EF4444; font-weight: bold;">${per.toFixed(2)} (소신)</span>`;
+  }
+
   document.getElementById('res_add_inventory').textContent = formatOutputCurrency(addInventory);
 
   resultsPane.style.display = 'block';
-
-  // 결과 영역으로 자동 스크롤
   setTimeout(() => {
     resultsPane.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, 100);
 });
 
-// Data extraction
+// ── 데이터 추출 ────────────────────────────────────────
 extractBtn.addEventListener('click', async () => {
   statusMsg.textContent = '데이터를 가져오는 중...';
   statusMsg.style.color = '#4F46E5';
-
   const selectedSite = siteSelect.value;
-  
+
   try {
     let [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    
-    chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      files: ['content.js']
-    }, () => {
-      chrome.tabs.sendMessage(tab.id, { command: "extractData", site: selectedSite }, (response) => {
-        if (response && response.data) {
-          const d = response.data;
-          // Assign data if found
-          if (d.v1) setFormatted('v1_deposit', d.v1);
-          if (d.v2) setFormatted('v2_rent', d.v2);
-          if (d.v3) setFormatted('v3_maintenance', d.v3);
-          if (d.v4) setFormatted('v4_premium', d.v4);
-          if (d.v5) setFormatted('v5_consulting', d.v5);
-          if (d.v6) inputs['v6_size'].value = d.v6; // Size is pyung
-          if (d.v7) setFormatted('v7_dispensing', d.v7);
-          if (d.v8) setFormatted('v8_noncov_disp', d.v8);
-          if (d.v9) setFormatted('v9_noncov_margin', d.v9);
-          if (d.v10) setFormatted('v10_daily_otc', d.v10);
-          if (d.v11) setFormatted('v11_monthly_otc', d.v11);
-          if (d.v12) inputs['v12_otc_margin_rate'].value = d.v12; // Percentage
-          if (d.v13) {
-            inputs['v13_days'].value = d.v13 == 365 ? 30 : d.v13;
+    chrome.scripting.executeScript(
+      { target: { tabId: tab.id }, files: ['content.js'] },
+      () => {
+        chrome.tabs.sendMessage(tab.id, { command: "extractData", site: selectedSite }, (response) => {
+          if (response && response.data) {
+            const d = response.data;
+            setFormatted('v1_deposit', d.v1 || 0);
+            setFormatted('v2_rent', d.v2 || 0);
+            setFormatted('v3_maintenance', d.v3 || 0);
+            setFormatted('v4_premium', d.v4 || 0);
+            setFormatted('v5_consulting', d.v5 || 0);
+            inputs['v6_size'].value = d.v6 || 0;
+            setFormatted('v7_dispensing', d.v7 || 0);
+            setFormatted('v8_noncov_disp', d.v8 || 0);
+            setFormatted('v9_noncov_margin', d.v9 || 0);
+            setFormatted('v10_daily_otc', d.v10 || 0);
+            setFormatted('v11_monthly_otc', d.v11 || 0);
+            inputs['v12_otc_margin_rate'].value = d.v12 || 0;
+            inputs['v13_days'].value = d.v13 ? (d.v13 == 365 ? 30 : d.v13) : 0;
+            setFormatted('v14_drug_cost', d.v14 || 0);
+            setFormatted('v15_pharmacist_salary', 0);
+            setFormatted('v16_staff_salary', 0);
+            setFormatted('v17_loan', 0);
+            inputs['v18_interest_rate'].value = 0;
+            setFormatted('v19_etc_expense', 0);
+            inputs['v20_weekly_hours'].value = 0;
+            setFormatted('v22_meal', 0);
+            updateDerivedOTC();
+            updateSupplies();
+            statusMsg.textContent = '데이터 추출 완료!';
+            statusMsg.style.color = '#10B981';
+          } else {
+            statusMsg.textContent = '정보를 찾을 수 없습니다. (수동 입력 필요)';
+            statusMsg.style.color = '#EAB308';
           }
-          if (d.v14) setFormatted('v14_drug_cost', d.v14);
-          
-          updateDerivedOTC();
-          updateSupplies();
-
-          statusMsg.textContent = '데이터 추출 완료!';
-          statusMsg.style.color = '#10B981';
-        } else {
-          statusMsg.textContent = '정보를 찾을 수 없습니다. (수동 입력 필요)';
-          statusMsg.style.color = '#EAB308';
-        }
-      });
-    });
+        });
+      }
+    );
   } catch(e) {
     statusMsg.textContent = '문제가 발생했습니다. 해당 사이트인지 확인하세요.';
     statusMsg.style.color = '#EF4444';
   }
 });
 
-// Auto-extract immediately when the extension opens
+// ── 저장 확인 버튼 이벤트 ─────────────────────────────
+document.getElementById('save-confirm-btn').addEventListener('click', async () => {
+  const name = document.getElementById('save-pharmacy-name').value.trim();
+  const note = document.getElementById('save-feature-note').value.trim();
+
+  if (!name) {
+    alert('약국명을 입력해주세요.');
+    return;
+  }
+
+  const btn = document.getElementById('save-confirm-btn');
+  btn.textContent = '저장 중...';
+  btn.disabled = true;
+
+  try {
+    await window.saveAPI.saveCalculation(name, note);
+    document.getElementById('save-pharmacy-name').value = '';
+    document.getElementById('save-feature-note').value = '';
+    window.saveAPI.closeSaveModal();
+    alert('✅ 저장되었습니다!');
+  } catch (e) {
+    alert('저장 실패: ' + e.message);
+  } finally {
+    btn.textContent = '저장하기';
+    btn.disabled = false;
+  }
+});
+
+// ── Polar 상품 구매 버튼 이벤트 ────────────────────────
+document.querySelectorAll('.polar-buy-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const productKey = btn.dataset.product;
+    const product = window.ENV.POLAR_PRODUCTS[productKey];
+    if (product) {
+      window.tokenAPI.openPolarCheckout(product.id);
+    }
+  });
+});
+
+// ── 스크롤 상단 버튼 ─────────────────────────────────
+const scrollTopBtn = document.getElementById('scroll-to-top');
+window.addEventListener('scroll', () => {
+  scrollTopBtn.classList.toggle('show', window.scrollY > 200);
+});
+scrollTopBtn.addEventListener('click', () => {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+// ── 이벤트 리스너 바인딩 (CSP 우회용) ──────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  // 탭 네비게이션
+  const tabCalc = document.getElementById('tab-calc');
+  const tabSaved = document.getElementById('tab-saved');
+  if (tabCalc) tabCalc.addEventListener('click', () => switchTab('calc'));
+  if (tabSaved) tabSaved.addEventListener('click', () => switchTab('saved'));
+
+  // 헤더 및 토큰 버튼
+  const tokenDisplay = document.getElementById('token-display');
+  const chargeBtn = document.getElementById('charge-btn');
+  if (tokenDisplay) tokenDisplay.addEventListener('click', () => window.tokenAPI?.showTokenModal());
+  if (chargeBtn) chargeBtn.addEventListener('click', () => window.tokenAPI?.showTokenModal());
+
+  // 저장 버튼 및 모달
+  const saveResultBtn = document.getElementById('save-result-btn');
+  const saveCancelBtn = document.getElementById('save-cancel-btn');
+  const refreshSavedBtn = document.getElementById('refresh-saved-btn');
+  
+  if (saveResultBtn) saveResultBtn.addEventListener('click', () => window.saveAPI?.openSaveModal());
+  if (saveCancelBtn) saveCancelBtn.addEventListener('click', () => window.saveAPI?.closeSaveModal());
+  if (refreshSavedBtn) refreshSavedBtn.addEventListener('click', () => window.saveAPI?.renderSavedList());
+
+  // 모달 닫기
+  const tokenCloseBtn = document.getElementById('token-close-btn');
+  if (tokenCloseBtn) tokenCloseBtn.addEventListener('click', () => window.tokenAPI?.closeTokenModal());
+  
+  // 자동 데이터 추출
   extractBtn.click();
 });
+

@@ -32,7 +32,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     // Create an object to hold our extracted parsed values
     const data = {};
 
-    function parseValue(valStr) {
+    // defaultManwon: true면 단위(만/억/천)가 없을 때 자동으로 ×10000 처리
+    function parseValue(valStr, defaultManwon) {
       if (!valStr) return null;
       let cln = valStr.replace(/[^0-9\.]/g, '');
       if (!cln) return null;
@@ -52,7 +53,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       } else if (valStr.includes('천')) {
         return num * 1000;
       } else {
-        return num;
+        // 단위가 없는 경우: defaultManwon이면 만원(×10000) 적용
+        return defaultManwon ? num * 10000 : num;
       }
     }
 
@@ -61,7 +63,20 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       for (let reg of regexes) {
         let match = bodyText.match(reg);
         if (match && match[1]) {
-          let val = parseValue(match[1]);
+          let val = parseValue(match[1], false);
+          if (val !== null) return val;
+        }
+      }
+      return null;
+    }
+
+    // 단위가 없으면 만원(×10000)으로 자동 변환하는 추출 함수
+    // 보증금, 권리금, 조제료, 비급여조제료, 일일 매약매출, 한달 평균 약제비용
+    function extractManwon(regexes) {
+      for (let reg of regexes) {
+        let match = bodyText.match(reg);
+        if (match && match[1]) {
+          let val = parseValue(match[1], true);
           if (val !== null) return val;
         }
       }
@@ -70,14 +85,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
     function buildReg(keywords) {
       const kw = keywords.join('|');
-      return new RegExp(`(?:${kw})[\\s:\\-\\t\\n]*([0-9,\\.]+(?:\\s*[만억천])?)`, 'i');
+      // \(?[^)]*\)? 로 괄호 안 텍스트 허용 (예: 조제료(월), 일반매출(일))
+      return new RegExp(`(?:${kw})(?:\\([^)]*\\))?[\\s:\\-\\t\\n]*([0-9,\\.]+(?:\\s*[만억천])?)`, 'i');
     }
 
     // Split and order keywords by specificity!
-    data.v1 = extract([buildReg(['보증금']), buildReg(['보'])]);
-    data.v2 = extract([buildReg(['임차료', '월세']), buildReg(['임차', '차임'])]);
+    data.v1 = extractManwon([buildReg(['보증금']), buildReg(['임대료']), buildReg(['보'])]);
+    // 월세 추출 후 ×1.1 부가세 적용
+    let rawV2 = extract([buildReg(['임차료', '월세']), buildReg(['임차', '차임'])]);
+    data.v2 = rawV2 !== null ? Math.round(rawV2 * 1.1) : null;
     data.v3 = extract([buildReg(['관리비', '주차료'])]);
-    data.v4 = extract([buildReg(['권리금', '인테리어']), buildReg(['권리', '권'])]);
+    data.v4 = extractManwon([buildReg(['권리금', '인테리어']), buildReg(['권리', '권'])]);
     data.v5 = extract([buildReg(['컨설팅비']), buildReg(['컨비', '컨'])]);
 
     data.v6 = extract([
@@ -86,22 +104,24 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       buildReg(['전용', '면적', '평'])
     ]);
 
-    data.v8 = extract([buildReg(['비급여 조제료'])]);
+    data.v8 = extractManwon([buildReg(['비급여 조제료'])]);
 
-    data.v7 = extract([
+    data.v7 = extractManwon([
       buildReg(['월평균조제료']),
-      /(?<!비급여\s*)조제료[\s:\-\\t\\n]*([0-9,\.]+(?:\s*[만억천])?)/i,
-      /(?<!비급여\s*)조제[\s:\-\\t\\n]*([0-9,\.]+(?:\s*[만억천])?)/i,
-      /(?<!비급여\s*)조[\s:\-\\t\\n]*([0-9,\.]+(?:\s*[만억천])?)/i
+      buildReg(['조제금']),
+      /(?<!비급여\s*)조제료(?:\([^)]*\))?[\s:\-\\t\\n]*([0-9,\.]+(?:\s*[만억천])?)/i,
+      /(?<!비급여\s*)조제(?:\([^)]*\))?[\s:\-\\t\\n]*([0-9,\.]+(?:\s*[만억천])?)/i,
+      /(?<!비급여\s*)조(?:\([^)]*\))?[\s:\-\\t\\n]*([0-9,\.]+(?:\s*[만억천])?)/i
     ]);
 
     data.v9 = extract([buildReg(['비급여 약가마진', '알값 마진', '백마진', '알값'])]);
 
     data.v11 = extract([buildReg(['월일반약매출', '월매출', '월매'])]);
-    data.v10 = extract([
+    data.v10 = extractManwon([
       buildReg(['일평균일반약매출']),
       buildReg(['일일매약매출']),
       buildReg(['일반약매출']),
+      buildReg(['일반매출']),
       buildReg(['일매출']),
       buildReg(['일매', '일반'])
     ]);
@@ -112,7 +132,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (days === 365) days = 30;
     data.v13 = days;
 
-    data.v14 = extract([buildReg(['약제비'])]);
+    data.v14 = extractManwon([buildReg(['약제비'])]);
 
     sendResponse({ data: data });
   }

@@ -4,166 +4,310 @@
 <head>
   <meta charset="UTF-8">
   <link rel="stylesheet" href="index.css">
+  <!-- Supabase 라이브러리 (로컬) -->
+  <script src="supabase-js.js"></script>
+  <script src="secrets.js"></script>
+  <script src="supabase.js"></script>
 </head>
 
 <body>
-  <div class="container">
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- 로그인 화면 (첫 화면)                               -->
+  <!-- ══════════════════════════════════════════════════ -->
+  <div id="login-screen" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background-color: #fff; width: 100%; position: absolute; top: 0; left: 0; z-index: 1000;">
+    <div style="text-align: center; margin-bottom: 32px;">
+      <img src="logo.png" alt="로고" style="width: 80px; height: 80px; object-fit: contain; border-radius: 12px; margin-bottom: 16px;">
+      <h1 style="font-size: 24px; font-weight: bold; color: var(--primary); margin-bottom: 12px;">약국 수익 계산기</h1>
+      <p style="font-size: 15px; color: var(--text-muted); line-height: 1.6;">간편하게 로그인하고<br>다양한 서비스를 이용해보세요.</p>
+    </div>
+    <button id="login-btn" style="background-color: #FEE500; color: #191919; font-weight: 600; border: none; border-radius: 8px; padding: 14px 24px; width: 80%; max-width: 300px; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3c-5.52 0-10 3.5-10 7.82 0 2.76 1.76 5.17 4.41 6.5l-1.13 4.14c-.1.35.3.62.6.43l4.75-3.13c.45.06.9.09 1.37.09 5.52 0 10-3.5 10-7.82S17.52 3 12 3z"/></svg>
+      카카오 로그인
+    </button>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- 메인 앱 (로그인 후 화면)                            -->
+  <!-- ══════════════════════════════════════════════════ -->
+  <div id="main-app" class="container" style="display: none;">
+
+    <!-- ── 헤더 ── -->
     <header>
-      <h1>약국 수익 계산기</h1>
+      <div class="header-top" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+        <div id="token-display" class="token-display" style="display: none; background: #EEF2FF; padding: 4px 10px; border-radius: 12px; font-weight: bold; color: #4F46E5; font-size: 13px; align-items: center; gap: 4px; cursor: pointer;" title="토큰 충전하기">
+          💊 <span id="token-count">0</span>개
+        </div>
+        <div class="auth-buttons" style="margin-left: auto; display: flex; gap: 8px; align-items: center;">
+          <button id="charge-btn" style="display: none; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; padding: 4px 10px; font-size: 12px; font-weight: 600; cursor: pointer;">충전</button>
+          <button id="logout-btn" class="btn" style="display: none; padding: 4px 12px; font-size: 13px; background-color: #F3F4F6; color: #374151; border: 1px solid #D1D5DB;">로그아웃</button>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+        <img src="logo.png" alt="로고" style="width: 32px; height: 32px; object-fit: contain; border-radius: 6px;">
+        <h1 style="margin-bottom: 0;">약국 수익 계산기</h1>
+      </div>
       <p class="subtitle">자동 데이터 추출 및 빠른 수익성 평가</p>
     </header>
 
-    <div class="card action-card">
-      <div class="form-group">
-        <label for="site-select">정보 가져올 사이트</label>
-        <select id="site-select">
-          <option value="pharmple">팜플</option>
-          <option value="pharmall">팜올플러스</option>
-          <option value="dailypharm">데일리팜</option>
-        </select>
-      </div>
-      <button id="extract-btn" class="btn primary-btn">데이터 가져오기</button>
-      <p id="extract-status" class="status-msg"></p>
+    <!-- ── 탭 네비게이션 ── -->
+    <div class="tab-nav">
+      <button class="tab-btn active" id="tab-calc">🧮 계산기</button>
+      <button class="tab-btn" id="tab-saved">📋 저장된 내용</button>
     </div>
 
-    <div class="card input-card">
-      <h2>투자 및 고정비용</h2>
-      <div class="grid-2">
-        <div class="input-group">
-          <label>1. 보증금</label>
-          <input type="text" id="v1_deposit" class="currency-input" placeholder="0원">
+    <!-- ══════════════════════════════════════════════ -->
+    <!-- 계산기 탭                                      -->
+    <!-- ══════════════════════════════════════════════ -->
+    <div id="pane-calc">
+
+      <div class="card action-card">
+        <div class="form-group">
+          <label for="site-select">정보 가져올 사이트</label>
+          <select id="site-select">
+            <option value="pharmple">팜플</option>
+            <option value="pharmall">팜올플러스</option>
+            <option value="dailypharm">데일리팜</option>
+          </select>
         </div>
-        <div class="input-group">
-          <label>2. 월세[부가세포함](임차료)</label>
-          <input type="text" id="v2_rent" class="currency-input" placeholder="0원">
+        <button id="extract-btn" class="btn primary-btn">데이터 가져오기</button>
+        <p id="extract-status" class="status-msg"></p>
+      </div>
+
+      <div class="card input-card">
+        <div class="radio-group">
+          <label class="radio-label"><input type="radio" name="pharm_type" value="new"> 신규</label>
+          <label class="radio-label"><input type="radio" name="pharm_type" value="existing" checked> 기존</label>
+          <label class="radio-label"><input type="radio" name="pharm_type" value="other"> 기타</label>
         </div>
-        <div class="input-group">
-          <label>3. 관리비</label>
-          <input type="text" id="v3_maintenance" class="currency-input" placeholder="0원">
+        <h2>투자 및 고정비용</h2>
+        <div class="grid-2">
+          <div class="input-group">
+            <label>1. 보증금</label>
+            <input type="text" id="v1_deposit" class="currency-input" placeholder="0원">
+          </div>
+          <div class="input-group">
+            <label>2. 월세[부가세포함](임차료)</label>
+            <input type="text" id="v2_rent" class="currency-input" placeholder="0원">
+          </div>
+          <div class="input-group">
+            <label>3. 관리비</label>
+            <input type="text" id="v3_maintenance" class="currency-input" placeholder="0원">
+          </div>
+          <div class="input-group">
+            <label>4. 권리금(인테리어)</label>
+            <input type="text" id="v4_premium" class="currency-input" placeholder="0원">
+          </div>
+          <div class="input-group">
+            <label>5. 컨설팅비</label>
+            <input type="text" id="v5_consulting" class="currency-input" placeholder="0원">
+          </div>
+          <div class="input-group">
+            <label>6. 약국 평수 (평)</label>
+            <input type="number" id="v6_size" min="0" placeholder="0">
+          </div>
+          <div class="input-group">
+            <label>17. 대출금액</label>
+            <input type="text" id="v17_loan" class="currency-input" placeholder="0원">
+          </div>
+          <div class="input-group">
+            <label>18. 이자율 (%)</label>
+            <input type="number" id="v18_interest_rate" min="0" step="0.1" placeholder="0" value="0">
+          </div>
         </div>
-        <div class="input-group">
-          <label>4. 권리금(인테리어)</label>
-          <input type="text" id="v4_premium" class="currency-input" placeholder="0원">
+      </div>
+
+      <div class="card input-card">
+        <h2>매출 및 조제료</h2>
+        <div class="grid-2">
+          <div class="input-group">
+            <label>7. 조제료</label>
+            <input type="text" id="v7_dispensing" class="currency-input" placeholder="0원">
+          </div>
+          <div class="input-group">
+            <label>8. 비급여 조제료</label>
+            <input type="text" id="v8_noncov_disp" class="currency-input" placeholder="0원">
+          </div>
+          <div class="input-group">
+            <label>9. 비급여 약가마진</label>
+            <input type="text" id="v9_noncov_margin" class="currency-input" placeholder="0원">
+          </div>
+          <div class="input-group">
+            <label>14. 한달 평균 약제비</label>
+            <input type="text" id="v14_drug_cost" class="currency-input" placeholder="0원">
+          </div>
+          <div class="input-group">
+            <label>10. 일일 매약 매출</label>
+            <input type="text" id="v10_daily_otc" class="currency-input" placeholder="0원">
+          </div>
+          <div class="input-group">
+            <label>13. 영업일수 (일)</label>
+            <input type="number" id="v13_days" min="0" placeholder="0" value="0">
+          </div>
+          <div class="input-group">
+            <label>11. 월 매약 매출</label>
+            <input type="text" id="v11_monthly_otc" placeholder="0원" readonly class="readonly-input currency-input">
+          </div>
+          <div class="input-group">
+            <label>12. 매약 마진률 (%)</label>
+            <input type="number" id="v12_otc_margin_rate" min="0" placeholder="0" value="0">
+          </div>
+          <div class="input-group full-width">
+            <label>12-1. 월 매약 마진</label>
+            <input type="text" id="v12_1_monthly_otc_margin" placeholder="0원" readonly class="readonly-input currency-input">
+          </div>
         </div>
-        <div class="input-group">
-          <label>5. 컨설팅비</label>
-          <input type="text" id="v5_consulting" class="currency-input" placeholder="0원">
+      </div>
+
+      <div class="card input-card">
+        <h2>운영 비용 및 기타</h2>
+        <div class="grid-2">
+          <div class="input-group">
+            <label>15. 약사 급여</label>
+            <input type="text" id="v15_pharmacist_salary" class="currency-input" placeholder="0원">
+          </div>
+          <div class="input-group">
+            <label>16. 직원 급여</label>
+            <input type="text" id="v16_staff_salary" class="currency-input" placeholder="0원">
+          </div>
+          <div class="input-group">
+            <label>19. 기타잡비(세무,화재,약사회비,기타 등등)</label>
+            <input type="text" id="v19_etc_expense" class="currency-input" placeholder="0원">
+          </div>
+          <div class="input-group">
+            <label>20. 주당 영업시간 (시간)</label>
+            <input type="number" id="v20_weekly_hours" min="0" placeholder="0" value="0">
+          </div>
+          <div class="input-group">
+            <label>21. 소모품비 (조제료×1.5%)</label>
+            <input type="text" id="v21_supplies" placeholder="0원" readonly class="readonly-input currency-input">
+          </div>
+          <div class="input-group">
+            <label>22. 직원 식비</label>
+            <input type="text" id="v22_meal" class="currency-input" placeholder="0원">
+          </div>
         </div>
-        <div class="input-group">
-          <label>6. 약국 평수 (평)</label>
-          <input type="number" id="v6_size" min="0" placeholder="0">
+      </div>
+
+      <button id="calculate-btn" class="btn success-btn full-width" style="margin-bottom: 8px;">💊 바로 계산하기 (알약 1개 소비)</button>
+
+      <!-- 저장 버튼 (항상 보이도록 밖으로 뺌) -->
+      <button id="save-result-btn" class="btn save-btn full-width" style="margin-bottom: 16px;">
+        💾 저장하기
+      </button>
+
+      <div class="card result-card" id="results-pane" style="display: none;">
+        <h2>계산 결과</h2>
+        <div class="result-item highlight">
+          <span class="result-label">1. 세전 월 순수익</span>
+          <span class="result-value" id="res_pretax">0원</span>
         </div>
-        <div class="input-group">
-          <label>17. 대출금액</label>
-          <input type="text" id="v17_loan" class="currency-input" placeholder="0원">
+        <div class="result-item highlight-blue">
+          <span class="result-label">2. 세후 월 순수익</span>
+          <span class="result-value" id="res_posttax">0원</span>
         </div>
-        <div class="input-group">
-          <label>18. 이자율 (%)</label>
-          <input type="number" id="v18_interest_rate" min="0" step="0.1" placeholder="0">
+        <div class="result-item">
+          <span class="result-label">3. 약국 개국시 시급</span>
+          <span class="result-value" id="res_hourly">0원</span>
         </div>
+        <div class="result-item">
+          <span class="result-label">4. PER</span>
+          <span class="result-value" id="res_per">0</span>
+        </div>
+        <div class="result-item">
+          <span class="result-label">5. 추가 재고 인수 비용</span>
+          <span class="result-value" id="res_add_inventory">0원</span>
+        </div>
+      </div>
+
+    </div><!-- /pane-calc -->
+
+    <!-- ══════════════════════════════════════════════ -->
+    <!-- 저장된 내용 탭                                  -->
+    <!-- ══════════════════════════════════════════════ -->
+    <div id="pane-saved" style="display: none;">
+      <div class="card" style="padding: 12px 16px;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-weight:600; color:var(--text-main);">저장된 약국 목록</span>
+          <button id="refresh-saved-btn" style="background:none; border:1px solid var(--border); border-radius:6px; padding:4px 10px; cursor:pointer; font-size:12px;">🔄 새로고침</button>
+        </div>
+      </div>
+      <div id="saved-list-container" class="card" style="padding: 0; overflow: hidden;">
+        <p style="text-align:center; color:#9CA3AF; padding:24px;">로딩 중...</p>
       </div>
     </div>
 
-    <div class="card input-card">
-      <h2>매출 및 조제료</h2>
-      <div class="grid-2">
-        <div class="input-group">
-          <label>7. 조제료</label>
-          <input type="text" id="v7_dispensing" class="currency-input" placeholder="0원">
-        </div>
-        <div class="input-group">
-          <label>8. 비급여 조제료</label>
-          <input type="text" id="v8_noncov_disp" class="currency-input" placeholder="0원">
-        </div>
-        <div class="input-group">
-          <label>9. 비급여 약가마진</label>
-          <input type="text" id="v9_noncov_margin" class="currency-input" placeholder="0원">
-        </div>
-        <div class="input-group">
-          <label>14. 한달 평균 약제비</label>
-          <input type="text" id="v14_drug_cost" class="currency-input" placeholder="0원">
-        </div>
-        <div class="input-group">
-          <label>10. 일일 매약 매출</label>
-          <input type="text" id="v10_daily_otc" class="currency-input" placeholder="0원">
-        </div>
-        <div class="input-group">
-          <label>13. 영업일수 (일)</label>
-          <input type="number" id="v13_days" min="0" placeholder="0">
-        </div>
-        <div class="input-group">
-          <label>11. 월 매약 매출</label>
-          <input type="text" id="v11_monthly_otc" placeholder="0원" readonly class="readonly-input currency-input">
-        </div>
-        <div class="input-group">
-          <label>12. 매약 마진률 (%)</label>
-          <input type="number" id="v12_otc_margin_rate" min="0" placeholder="0">
-        </div>
-        <div class="input-group full-width">
-          <label>12-1. 월 매약 마진</label>
-          <input type="text" id="v12_1_monthly_otc_margin" placeholder="0원" readonly
-            class="readonly-input currency-input">
-        </div>
-      </div>
-    </div>
+    <button id="scroll-to-top" class="scroll-top-btn" title="맨 위로 가기">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="17 11 12 6 7 11"></polyline>
+        <polyline points="17 18 12 13 7 18"></polyline>
+      </svg>
+    </button>
+  </div><!-- /main-app -->
 
-    <div class="card input-card">
-      <h2>운영 비용 및 기타</h2>
-      <div class="grid-2">
-        <div class="input-group">
-          <label>15. 약사 급여</label>
-          <input type="text" id="v15_pharmacist_salary" class="currency-input" placeholder="0원">
-        </div>
-        <div class="input-group">
-          <label>16. 직원 급여</label>
-          <input type="text" id="v16_staff_salary" class="currency-input" placeholder="0원">
-        </div>
-        <div class="input-group">
-          <label>19. 기타잡비(세무,화재,약사회비,기타 등등)</label>
-          <input type="text" id="v19_etc_expense" class="currency-input" placeholder="0원">
-        </div>
-        <div class="input-group">
-          <label>20. 주당 영업시간 (시간)</label>
-          <input type="number" id="v20_weekly_hours" min="0" placeholder="0">
-        </div>
-        <div class="input-group">
-          <label>21. 소모품비 (조제료×1.5%)</label>
-          <input type="text" id="v21_supplies" placeholder="0원" readonly class="readonly-input currency-input">
-        </div>
-        <div class="input-group">
-          <label>22. 직원 식비</label>
-          <input type="text" id="v22_meal" class="currency-input" placeholder="0원">
-        </div>
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- 저장 모달                                          -->
+  <!-- ══════════════════════════════════════════════════ -->
+  <div id="save-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:2000; align-items:center; justify-content:center; padding:16px;">
+    <div style="background:white; border-radius:16px; padding:24px; width:100%; max-width:360px; box-shadow: 0 20px 60px rgba(0,0,0,0.2);">
+      <h3 style="font-size:18px; font-weight:700; color:var(--primary); margin-bottom:20px; text-align:center;">💾 약국 정보 저장</h3>
+      <div class="input-group" style="margin-bottom:14px;">
+        <label style="font-size:13px; font-weight:600; color:var(--text-main);">약국명 <span style="color:#EF4444">*</span></label>
+        <input type="text" id="save-pharmacy-name" placeholder="예) 문정동 xx약국" style="margin-top:4px;">
       </div>
-    </div>
-
-    <button id="calculate-btn" class="btn success-btn full-width">바로 계산하기</button>
-
-    <div class="card result-card" id="results-pane" style="display: none;">
-      <h2>계산 결과</h2>
-      <div class="result-item highlight">
-        <span class="result-label">1. 세전 월 순수익</span>
-        <span class="result-value" id="res_pretax">0원</span>
+      <div class="input-group" style="margin-bottom:20px;">
+        <label style="font-size:13px; font-weight:600; color:var(--text-main);">특이사항</label>
+        <textarea id="save-feature-note" rows="3" placeholder="예) 의사 나이 60세, 브로커 A 소개..." style="margin-top:4px; width:100%; padding:8px 12px; border:1px solid var(--border); border-radius:6px; font-size:14px; resize:none; font-family:inherit;"></textarea>
       </div>
-      <div class="result-item highlight-blue">
-        <span class="result-label">2. 세후 월 순수익</span>
-        <span class="result-value" id="res_posttax">0원</span>
-      </div>
-      <div class="result-item">
-        <span class="result-label">3. 약국 개국시 시급</span>
-        <span class="result-value" id="res_hourly">0원</span>
-      </div>
-      <div class="result-item">
-        <span class="result-label">4. PER</span>
-        <span class="result-value" id="res_per">0</span>
-      </div>
-      <div class="result-item">
-        <span class="result-label">5. 추가 재고 인수 비용</span>
-        <span class="result-value" id="res_add_inventory">0원</span>
+      <div style="display:flex; gap:8px;">
+        <button id="save-cancel-btn" style="flex:1; padding:12px; border:1px solid var(--border); border-radius:8px; background:white; cursor:pointer; font-size:14px; font-weight:500;">취소</button>
+        <button id="save-confirm-btn" style="flex:2; padding:12px; border:none; border-radius:8px; background:var(--primary); color:white; cursor:pointer; font-size:14px; font-weight:600;">저장하기</button>
       </div>
     </div>
   </div>
 
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- 토큰 충전 모달                                     -->
+  <!-- ══════════════════════════════════════════════════ -->
+  <div id="token-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:2000; align-items:center; justify-content:center; padding:16px;">
+    <div style="background:white; border-radius:16px; padding:24px; width:100%; max-width:360px; box-shadow: 0 20px 60px rgba(0,0,0,0.2);">
+      <h3 style="font-size:18px; font-weight:700; color:var(--primary); margin-bottom:6px; text-align:center;">💊 알약 충전하기</h3>
+      <p style="text-align:center; font-size:13px; color:var(--text-muted); margin-bottom:20px;">계산 1회 = 알약 1개 소비</p>
+
+      <!-- 알약 일회성 구매 -->
+      <p style="font-size:12px; font-weight:700; color:var(--text-muted); margin-bottom:8px; letter-spacing:0.05em;">일회성 구매</p>
+      <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:16px;">
+        <button class="polar-buy-btn" data-product="pills_5" style="display:flex; justify-content:space-between; align-items:center; padding:12px 16px; border:1px solid var(--border); border-radius:10px; background:white; cursor:pointer; font-size:14px;">
+          <span>💊 알약 5개</span><span style="font-weight:700; color:var(--primary);">$1</span>
+        </button>
+        <button class="polar-buy-btn" data-product="pills_10" style="display:flex; justify-content:space-between; align-items:center; padding:12px 16px; border:2px solid var(--primary); border-radius:10px; background:#F5F3FF; cursor:pointer; font-size:14px;">
+          <span>💊 알약 10개 <span style="font-size:11px; background:var(--primary); color:white; padding:1px 6px; border-radius:4px; margin-left:4px;">인기</span></span><span style="font-weight:700; color:var(--primary);">$1.90</span>
+        </button>
+        <button class="polar-buy-btn" data-product="pills_100" style="display:flex; justify-content:space-between; align-items:center; padding:12px 16px; border:1px solid var(--border); border-radius:10px; background:white; cursor:pointer; font-size:14px;">
+          <span>💊 알약 100개</span><span style="font-weight:700; color:var(--primary);">$18</span>
+        </button>
+      </div>
+
+      <!-- 구독권 -->
+      <p style="font-size:12px; font-weight:700; color:var(--text-muted); margin-bottom:8px; letter-spacing:0.05em;">구독권 (무제한 계산)</p>
+      <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:20px;">
+        <button class="polar-buy-btn" data-product="sub_week" style="display:flex; justify-content:space-between; align-items:center; padding:12px 16px; border:1px solid var(--border); border-radius:10px; background:white; cursor:pointer; font-size:14px;">
+          <span>📅 1주일 구독</span><span style="font-weight:700; color:#059669;">$3/wk</span>
+        </button>
+        <button class="polar-buy-btn" data-product="sub_month" style="display:flex; justify-content:space-between; align-items:center; padding:12px 16px; border:1px solid var(--border); border-radius:10px; background:white; cursor:pointer; font-size:14px;">
+          <span>📅 1달 구독</span><span style="font-weight:700; color:#059669;">$9.99/mo</span>
+        </button>
+        <button class="polar-buy-btn" data-product="sub_life" style="display:flex; justify-content:space-between; align-items:center; padding:12px 16px; border:1px solid #F59E0B; border-radius:10px; background:#FFFBEB; cursor:pointer; font-size:14px;">
+          <span>⭐ 무제한 평생</span><span style="font-weight:700; color:#D97706;">$99</span>
+        </button>
+      </div>
+
+      <button id="token-close-btn" style="width:100%; padding:12px; border:1px solid var(--border); border-radius:8px; background:white; cursor:pointer; font-size:14px; font-weight:500;">닫기</button>
+    </div>
+  </div>
+
+  <script src="auth.js"></script>
+  <script src="token.js"></script>
+  <script src="save.js"></script>
   <script src="index.js"></script>
 </body>
 
