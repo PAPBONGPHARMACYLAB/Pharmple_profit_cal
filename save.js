@@ -37,6 +37,22 @@ function openSaveModal() {
     alert('먼저 계산을 실행해주세요.');
     return;
   }
+
+  if (window.extractedContactInfo) {
+    const info = window.extractedContactInfo;
+    const pName = document.getElementById('save-pharmacy-name');
+    const cName = document.getElementById('save-company-name');
+    const rep = document.getElementById('save-representative');
+    const mPhone = document.getElementById('save-main-phone');
+    const moPhone = document.getElementById('save-mobile-phone');
+    
+    if (pName && !pName.value) pName.value = info.pharmacyName || '';
+    if (cName && !cName.value) cName.value = info.companyName || '';
+    if (rep && !rep.value) rep.value = info.representative || '';
+    if (mPhone && !mPhone.value) mPhone.value = info.mainPhone || '';
+    if (moPhone && !moPhone.value) moPhone.value = info.mobilePhone || '';
+  }
+
   const modal = document.getElementById('save-modal');
   if (modal) modal.style.display = 'flex';
 }
@@ -47,13 +63,20 @@ function closeSaveModal() {
 }
 
 // ── Supabase에 저장 ─────────────────────────────────────
-async function saveCalculation(pharmacyName, note) {
+async function saveCalculation(pharmacyName, note, companyName, representative, mainPhone, mobilePhone, consultingNote) {
   if (!window.supabaseClient) throw new Error('Supabase 초기화 안됨');
   const { data: { user } } = await window.supabaseClient.auth.getUser();
   if (!user) throw new Error('로그인이 필요합니다.');
 
   const { inputData, resultData, pharmType } = collectCurrentData();
   const siteSource = document.getElementById('site-select')?.value ?? 'pharmple';
+
+  // 연락처 정보 및 컨설팅 메모 추가
+  inputData.companyName = companyName;
+  inputData.representative = representative;
+  inputData.mainPhone = mainPhone;
+  inputData.mobilePhone = mobilePhone;
+  inputData.consultingNote = consultingNote;
 
   const { data, error } = await window.supabaseClient
     .from('calculations')
@@ -126,7 +149,10 @@ function buildDetailTable(inputData, resultData) {
     v15_pharmacist_salary: '약사 급여', v16_staff_salary: '직원 급여',
     v17_loan: '대출금액', v18_interest_rate: '이자율(%)',
     v19_etc_expense: '기타잡비', v20_weekly_hours: '주당 영업시간(시간)',
-    v21_supplies: '소모품비', v22_meal: '직원 식비'
+    v21_supplies: '소모품비', v22_meal: '직원 식비',
+    companyName: '업체명', representative: '대표자/담당자',
+    mainPhone: '대표전화', mobilePhone: '휴대전화',
+    consultingNote: '컨설팅 특징'
   };
 
   let rows = Object.entries(labelMap)
@@ -184,8 +210,11 @@ async function renderSavedList() {
           <span style="font-size: 11px; color: #9CA3AF;">${d}</span>
         </div>
         
-        <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 8px;">
+        <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">
           <strong>특이사항:</strong> ${item.feature_note || '-'}
+        </div>
+        <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 8px;">
+          <strong>컨설팅 특징:</strong> ${item.input_data?.consultingNote || '-'}
         </div>
         
         <div style="margin-bottom: 12px;">

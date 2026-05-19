@@ -91,7 +91,7 @@ async function consumeToken() {
 function refreshTokenDisplay() {
   const tokenDisplay = document.getElementById('token-display');
   const tokenCountEl = document.getElementById('token-count');
-  
+
   const ttPlanName = document.getElementById('tt-plan-name');
   const ttCreditsLeft = document.getElementById('tt-credits-left');
   const ttProgressFill = document.getElementById('tt-progress-fill');
@@ -105,12 +105,12 @@ function refreshTokenDisplay() {
   }
 
   tokenDisplay.style.display = 'flex';
-  
+
   if (_tokenCache.isUnlimited) {
     tokenCountEl.textContent = '∞';
     tokenDisplay.style.background = '#FEF3C7';
     tokenDisplay.style.color = '#92400E';
-    
+
     // Tooltip update
     if (ttPlanName) ttPlanName.textContent = '👑 무제한 구독 (Pro)';
     if (ttCreditsLeft) ttCreditsLeft.textContent = '무제한';
@@ -128,7 +128,7 @@ function refreshTokenDisplay() {
   } else {
     tokenCountEl.textContent = _tokenCache.tokens;
     const count = _tokenCache.tokens;
-    
+
     if (count === 0) {
       tokenDisplay.style.background = '#FEE2E2';
       tokenDisplay.style.color = '#991B1B';
@@ -143,7 +143,7 @@ function refreshTokenDisplay() {
     // Tooltip update
     if (ttPlanName) ttPlanName.textContent = '⚡ 종량제 (일반)';
     if (ttCreditsLeft) ttCreditsLeft.textContent = `${count}개 남음`;
-    
+
     if (ttProgressFill) {
       // Calculate a reasonable total for the progress bar based on current tokens
       let total = 5;

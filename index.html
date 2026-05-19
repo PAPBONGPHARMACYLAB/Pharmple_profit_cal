@@ -49,7 +49,7 @@
         <div id="token-display" class="token-display"
           style="display: none; background: #EEF2FF; padding: 4px 10px; border-radius: 12px; font-weight: bold; color: #4F46E5; font-size: 13px; align-items: center; gap: 4px; cursor: pointer; position: relative;">
           💊 <span id="token-count">0</span>개
-          
+
           <!-- 커스텀 툴팁 -->
           <div id="token-tooltip" class="token-tooltip">
             <div class="tt-header">
@@ -283,27 +283,40 @@
     <div id="pane-mypage" style="display: none; flex-direction: column; gap: 16px;">
       <div class="card" style="padding: 16px;">
         <h2 style="margin-top:0; font-size:18px; margin-bottom:16px;">마이페이지</h2>
-        
-        <div style="display:flex; gap:8px; border-bottom: 1px solid var(--border); margin-bottom: 16px; padding-bottom: 8px; overflow-x: auto;">
-          <button id="mypage-tab-info" class="tab-btn active" style="flex:1; padding:8px 0; font-size:14px; background:none; border:none; border-bottom:2px solid var(--primary); color:var(--primary); font-weight:600; cursor:pointer;">내 정보</button>
-          <button id="mypage-tab-payment" class="tab-btn" style="flex:1; padding:8px 0; font-size:14px; background:none; border:none; color:var(--text-muted); cursor:pointer;">결제 내역</button>
-          <button id="mypage-tab-usage" class="tab-btn" style="flex:1; padding:8px 0; font-size:14px; background:none; border:none; color:var(--text-muted); cursor:pointer;">알약 사용 내역</button>
+
+        <div
+          style="display:flex; gap:8px; border-bottom: 1px solid var(--border); margin-bottom: 16px; padding-bottom: 8px; overflow-x: auto;">
+          <button id="mypage-tab-info" class="tab-btn active"
+            style="flex:1; padding:8px 0; font-size:14px; background:none; border:none; border-bottom:2px solid var(--primary); color:var(--primary); font-weight:600; cursor:pointer;">내
+            정보</button>
+          <button id="mypage-tab-payment" class="tab-btn"
+            style="flex:1; padding:8px 0; font-size:14px; background:none; border:none; color:var(--text-muted); cursor:pointer;">결제
+            내역</button>
+          <button id="mypage-tab-usage" class="tab-btn"
+            style="flex:1; padding:8px 0; font-size:14px; background:none; border:none; color:var(--text-muted); cursor:pointer;">알약
+            사용 내역</button>
         </div>
 
         <!-- 내 정보 뷰 -->
         <div id="mypage-view-info">
           <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:20px;">
             <div>
-              <label style="font-size:12px; font-weight:600; color:var(--text-main); display:block; margin-bottom:4px;">닉네임</label>
-              <input type="text" id="mp-nickname" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px; font-size:14px; box-sizing:border-box;">
+              <label
+                style="font-size:12px; font-weight:600; color:var(--text-main); display:block; margin-bottom:4px;">닉네임</label>
+              <input type="text" id="mp-nickname"
+                style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px; font-size:14px; box-sizing:border-box;">
             </div>
             <div>
-              <label style="font-size:12px; font-weight:600; color:var(--text-main); display:block; margin-bottom:4px;">전화번호</label>
-              <input type="text" id="mp-phone" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px; font-size:14px; box-sizing:border-box;">
+              <label
+                style="font-size:12px; font-weight:600; color:var(--text-main); display:block; margin-bottom:4px;">전화번호</label>
+              <input type="text" id="mp-phone"
+                style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px; font-size:14px; box-sizing:border-box;">
             </div>
             <div>
-              <label style="font-size:12px; font-weight:600; color:var(--text-main); display:block; margin-bottom:4px;">이메일</label>
-              <input type="email" id="mp-email" disabled style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px; font-size:14px; box-sizing:border-box; background:#F9FAFB; color:#6B7280; cursor:not-allowed;">
+              <label
+                style="font-size:12px; font-weight:600; color:var(--text-main); display:block; margin-bottom:4px;">이메일</label>
+              <input type="email" id="mp-email" disabled
+                style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px; font-size:14px; box-sizing:border-box; background:#F9FAFB; color:#6B7280; cursor:not-allowed;">
             </div>
           </div>
           <button id="mp-save-btn" class="btn success-btn full-width">정보 수정하기</button>
@@ -428,19 +441,48 @@
   <div id="save-modal"
     style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:2000; align-items:center; justify-content:center; padding:16px;">
     <div
-      style="background:white; border-radius:16px; padding:24px; width:100%; max-width:360px; box-shadow: 0 20px 60px rgba(0,0,0,0.2);">
-      <h3 style="font-size:18px; font-weight:700; color:var(--primary); margin-bottom:20px; text-align:center;">💾 약국 정보
-        저장</h3>
+      style="background:white; border-radius:16px; padding:24px; width:100%; max-width:400px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto;">
+      <h3 style="font-size:18px; font-weight:700; color:var(--primary); margin-bottom:20px; text-align:center;">💾 약국 정보 저장</h3>
+      
       <div class="input-group" style="margin-bottom:14px;">
-        <label style="font-size:13px; font-weight:600; color:var(--text-main);">약국명 <span
-            style="color:#EF4444">*</span></label>
+        <label style="font-size:13px; font-weight:600; color:var(--text-main);">약국명 <span style="color:#EF4444">*</span></label>
         <input type="text" id="save-pharmacy-name" placeholder="예) 문정동 xx약국" style="margin-top:4px;">
       </div>
-      <div class="input-group" style="margin-bottom:20px;">
+
+      <div style="display:flex; gap:12px; margin-bottom:14px;">
+        <div class="input-group" style="flex:1;">
+          <label style="font-size:13px; font-weight:600; color:var(--text-main);">업체명</label>
+          <input type="text" id="save-company-name" placeholder="업체명" style="margin-top:4px;">
+        </div>
+        <div class="input-group" style="flex:1;">
+          <label style="font-size:13px; font-weight:600; color:var(--text-main);">대표자/담당자</label>
+          <input type="text" id="save-representative" placeholder="이름" style="margin-top:4px;">
+        </div>
+      </div>
+
+      <div style="display:flex; gap:12px; margin-bottom:14px;">
+        <div class="input-group" style="flex:1;">
+          <label style="font-size:13px; font-weight:600; color:var(--text-main);">대표전화</label>
+          <input type="text" id="save-main-phone" placeholder="000-000-0000" style="margin-top:4px;">
+        </div>
+        <div class="input-group" style="flex:1;">
+          <label style="font-size:13px; font-weight:600; color:var(--text-main);">휴대전화</label>
+          <input type="text" id="save-mobile-phone" placeholder="010-0000-0000" style="margin-top:4px;">
+        </div>
+      </div>
+
+      <div class="input-group" style="margin-bottom:14px;">
         <label style="font-size:13px; font-weight:600; color:var(--text-main);">특이사항</label>
-        <textarea id="save-feature-note" rows="3" placeholder="예) 의사 나이 60세, 브로커 A 소개..."
+        <textarea id="save-feature-note" rows="2" placeholder="예) 의사 나이 60세, 브로커 A 소개..."
           style="margin-top:4px; width:100%; padding:8px 12px; border:1px solid var(--border); border-radius:6px; font-size:14px; resize:none; font-family:inherit;"></textarea>
       </div>
+
+      <div class="input-group" style="margin-bottom:20px;">
+        <label style="font-size:13px; font-weight:600; color:var(--text-main);">컨설팅 특징</label>
+        <textarea id="save-consulting-note" rows="2" placeholder="컨설팅 관련 메모를 입력하세요"
+          style="margin-top:4px; width:100%; padding:8px 12px; border:1px solid var(--border); border-radius:6px; font-size:14px; resize:none; font-family:inherit;"></textarea>
+      </div>
+
       <div style="display:flex; gap:8px;">
         <button id="save-cancel-btn"
           style="flex:1; padding:12px; border:1px solid var(--border); border-radius:8px; background:white; cursor:pointer; font-size:14px; font-weight:500;">취소</button>

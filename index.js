@@ -255,6 +255,16 @@ extractBtn.addEventListener('click', async () => {
             setFormatted('v19_etc_expense', 0);
             inputs['v20_weekly_hours'].value = 0;
             setFormatted('v22_meal', 0);
+
+            // 신규: 약국명 및 연락처 정보 저장
+            window.extractedContactInfo = {
+              pharmacyName: d.pharmacy_name || '',
+              companyName: d.company_name || '',
+              representative: d.representative || '',
+              mainPhone: d.main_phone || '',
+              mobilePhone: d.mobile_phone || ''
+            };
+
             updateDerivedOTC();
             updateSupplies();
             statusMsg.textContent = '데이터 추출 완료!';
@@ -276,6 +286,11 @@ extractBtn.addEventListener('click', async () => {
 document.getElementById('save-confirm-btn').addEventListener('click', async () => {
   const name = document.getElementById('save-pharmacy-name').value.trim();
   const note = document.getElementById('save-feature-note').value.trim();
+  const companyName = document.getElementById('save-company-name').value.trim();
+  const representative = document.getElementById('save-representative').value.trim();
+  const mainPhone = document.getElementById('save-main-phone').value.trim();
+  const mobilePhone = document.getElementById('save-mobile-phone').value.trim();
+  const consultingNote = document.getElementById('save-consulting-note').value.trim();
 
   if (!name) {
     alert('약국명을 입력해주세요.');
@@ -287,9 +302,14 @@ document.getElementById('save-confirm-btn').addEventListener('click', async () =
   btn.disabled = true;
 
   try {
-    await window.saveAPI.saveCalculation(name, note);
+    await window.saveAPI.saveCalculation(name, note, companyName, representative, mainPhone, mobilePhone, consultingNote);
     document.getElementById('save-pharmacy-name').value = '';
     document.getElementById('save-feature-note').value = '';
+    document.getElementById('save-company-name').value = '';
+    document.getElementById('save-representative').value = '';
+    document.getElementById('save-main-phone').value = '';
+    document.getElementById('save-mobile-phone').value = '';
+    document.getElementById('save-consulting-note').value = '';
     window.saveAPI.closeSaveModal();
     alert('✅ 저장되었습니다!');
   } catch (e) {

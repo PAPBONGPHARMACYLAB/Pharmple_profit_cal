@@ -134,6 +134,43 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
     data.v14 = extractManwon([buildReg(['약제비'])]);
 
+    // ──────────────────────────────────────────
+    // 신규 파싱 필드 (약국명, 업체명, 대표자, 전화번호)
+    // ──────────────────────────────────────────
+    
+    // 1. 약국명 (게시글 제목)
+    let pharmacyName = null;
+    const titEl = document.querySelector('.tit.flex p');
+    if (titEl) {
+      pharmacyName = titEl.innerText.trim();
+    }
+    data.pharmacy_name = pharmacyName;
+
+    // 2. 업체명
+    let companyName = null;
+    const storeNameEl = document.querySelector('.store-name');
+    if (storeNameEl) {
+      companyName = storeNameEl.innerText.trim();
+    }
+    data.company_name = companyName;
+
+    // 3. 텍스트 기반 추출 (대표자, 대표전화, 휴대전화)
+    // 모달 안쪽 텍스트에 없을 수 있으므로 전체 bodyText와 document.body.innerText 모두 검사
+    const fullText = document.body.innerText;
+    function extractString(regexes, textStr) {
+      for (let reg of regexes) {
+        let match = textStr.match(reg);
+        if (match && match[1]) {
+          return match[1].trim();
+        }
+      }
+      return null;
+    }
+
+    data.representative = extractString([/대표자\s+([가-힣a-zA-Z]+)/, /담당자\s+([가-힣a-zA-Z]+)/], fullText) || extractString([/대표자\s+([가-힣a-zA-Z]+)/, /담당자\s+([가-힣a-zA-Z]+)/], bodyText);
+    data.main_phone = extractString([/대표전화\s+([0-9\-]+)/], fullText) || extractString([/대표전화\s+([0-9\-]+)/], bodyText);
+    data.mobile_phone = extractString([/휴대전화\s+([0-9\-]+)/], fullText) || extractString([/휴대전화\s+([0-9\-]+)/], bodyText);
+
     sendResponse({ data: data });
   }
 });
