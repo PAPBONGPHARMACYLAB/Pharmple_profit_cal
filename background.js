@@ -40,6 +40,7 @@ async function handleKakaoLogin() {
       redirect_uri: redirectUrl,
       response_type: "code",
       scope: "openid",   // accessToken 병행 전달로 Supabase가 이메일을 카카오 API로 조회
+      prompt: "select_account", // 매번 계정 선택 화면 노출
     }).toString();
 
     console.log("[bg] Kakao Auth URL:", authUrl);

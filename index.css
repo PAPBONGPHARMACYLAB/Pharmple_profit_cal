@@ -369,3 +369,94 @@ input[type="radio"] {
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
   transition: all 0.15s;
 }
+
+/* ── 알약 툴팁 ──────────────────────────────────── */
+.token-tooltip {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  width: 260px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+  border: 1px solid var(--border);
+  padding: 16px;
+  display: none;
+  flex-direction: column;
+  gap: 16px;
+  z-index: 100;
+  color: var(--text-main);
+  text-align: left;
+  cursor: default;
+}
+
+.token-display:hover .token-tooltip {
+  display: flex;
+}
+
+.tt-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 12px;
+}
+
+.tt-plan-name {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.tt-upgrade {
+  background: var(--primary);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.tt-upgrade:hover {
+  opacity: 0.9;
+}
+
+.tt-credits-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.tt-progress-bg {
+  background: #E5E7EB;
+  height: 8px;
+  border-radius: 4px;
+  width: 100%;
+  overflow: hidden;
+}
+
+.tt-progress-fill {
+  background: var(--primary);
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease, background-color 0.3s;
+}
+
+.tt-footer {
+  font-size: 11px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.tt-footer::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background: #9CA3AF;
+  border-radius: 50%;
+}

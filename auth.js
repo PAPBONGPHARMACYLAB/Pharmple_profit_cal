@@ -88,24 +88,93 @@ function updateAuthUI(user) {
   currentUser = user;
   const loginScreen = document.getElementById('login-screen');
   const mainApp = document.getElementById('main-app');
+  const mypageBtn = document.getElementById('mypage-btn');
 
   if (user) {
     if (loginScreen) loginScreen.style.display = 'none';
     if (mainApp) mainApp.style.display = 'flex';
     logoutBtn.style.display = 'inline-block';
     if (chargeBtn) chargeBtn.style.display = 'inline-block';
+    if (mypageBtn) mypageBtn.style.display = 'inline-block';
     // 토큰 시스템 초기화 (token.js 로드 후 실행)
     if (window.tokenAPI) {
       window.tokenAPI.initTokenSystem();
     }
+    // 온보딩 확인
+    checkOnboarding(user);
   } else {
     if (loginScreen) loginScreen.style.display = 'flex';
     if (mainApp) mainApp.style.display = 'none';
     logoutBtn.style.display = 'none';
     if (chargeBtn) chargeBtn.style.display = 'none';
+    if (mypageBtn) mypageBtn.style.display = 'none';
     if (tokenDisplay) tokenDisplay.style.display = 'none';
   }
 }
+
+// ────────────────────────────
+// 온보딩 (회원가입) 확인
+// ────────────────────────────
+async function checkOnboarding(user) {
+  if (!window.supabaseClient) return;
+  const { data: profile, error } = await window.supabaseClient
+    .from('profiles')
+    .select('is_onboarded, display_name, phone_number, email')
+    .eq('id', user.id)
+    .single();
+
+  if (error) {
+    console.error('[auth] profile fetch error:', error);
+    return;
+  }
+
+  if (!profile.is_onboarded) {
+    const obModal = document.getElementById('onboarding-modal');
+    if (obModal) {
+      obModal.style.display = 'flex';
+      document.getElementById('ob-nickname').value = profile.display_name || '';
+      document.getElementById('ob-email').value = profile.email || user.email || '';
+    }
+  }
+}
+
+// 온보딩 폼 제출
+document.getElementById('ob-submit-btn')?.addEventListener('click', async () => {
+  const nickname = document.getElementById('ob-nickname').value.trim();
+  const phone = document.getElementById('ob-phone').value.trim();
+  const email = document.getElementById('ob-email').value.trim();
+
+  if (!nickname || !phone || !email) {
+    alert('모든 정보를 입력해주세요.');
+    return;
+  }
+
+  const btn = document.getElementById('ob-submit-btn');
+  btn.textContent = '처리 중...';
+  btn.disabled = true;
+
+  try {
+    const { error } = await window.supabaseClient
+      .from('profiles')
+      .update({
+        display_name: nickname,
+        phone_number: phone,
+        email: email,
+        is_onboarded: true
+      })
+      .eq('id', currentUser.id);
+
+    if (error) throw error;
+
+    document.getElementById('onboarding-modal').style.display = 'none';
+    alert('가입이 완료되었습니다!');
+  } catch (err) {
+    alert('오류 발생: ' + err.message);
+  } finally {
+    btn.textContent = '가입 완료하기';
+    btn.disabled = false;
+  }
+});
 
 // ────────────────────────────
 // 초기 세션 확인
@@ -138,3 +207,4 @@ async function initAuth() {
 loginBtn.addEventListener('click', handleLogin);
 logoutBtn.addEventListener('click', handleLogout);
 initAuth();
+

@@ -4,12 +4,14 @@
 function switchTab(tab) {
   document.getElementById('pane-calc').style.display = tab === 'calc' ? 'flex' : 'none';
   document.getElementById('pane-saved').style.display = tab === 'saved' ? 'flex' : 'none';
+  const paneMypage = document.getElementById('pane-mypage');
+  if (paneMypage) paneMypage.style.display = 'none';
 
   document.getElementById('tab-calc').classList.toggle('active', tab === 'calc');
   document.getElementById('tab-saved').classList.toggle('active', tab === 'saved');
 
   if (tab === 'saved') {
-    window.saveAPI.renderSavedList();
+    window.saveAPI?.renderSavedList();
   }
 }
 
@@ -63,9 +65,60 @@ function getRawNum(id) {
   return parseFloat(String(val).replace(/[^0-9\.]/g, '')) || 0;
 }
 
+function numberToKoreanText(num) {
+  if (num === 0) return '0원';
+  if (!num) return '';
+
+  const digits = ['','일','이','삼','사','오','육','칠','팔','구'];
+  const tens = ['','십','백','천'];
+  const units = ['','만','억','조','경'];
+
+  let numStr = String(Math.floor(num));
+  let result = '';
+
+  for (let i = 0; i < numStr.length; i++) {
+    const digit = parseInt(numStr[i], 10);
+    const pos = numStr.length - i - 1; 
+    
+    if (digit !== 0) {
+      let digitText = digits[digit];
+      if (digit === 1 && pos % 4 !== 0) {
+         digitText = ''; 
+      }
+      result += digitText + tens[pos % 4];
+    }
+    
+    if (pos % 4 === 0) {
+      const chunkStartIndex = Math.max(0, i - 3);
+      const chunk = parseInt(numStr.slice(chunkStartIndex, i + 1), 10);
+      if (chunk !== 0 && units[pos / 4]) {
+        result += units[pos / 4];
+      }
+    }
+  }
+
+  if (result.startsWith('일만')) result = result.replace(/^일만/, '만');
+  
+  return result ? result + '원' : '0원';
+}
+
+function updateKorText(id) {
+  const el = inputs[id];
+  if (!el) return;
+  const korDiv = document.getElementById(id + '_kor');
+  if (!korDiv) return;
+  const raw = getRawNum(id);
+  if (raw > 0) {
+    korDiv.textContent = numberToKoreanText(raw);
+  } else {
+    korDiv.textContent = '';
+  }
+}
+
 function setFormatted(id, num) {
   if (num === null || num === undefined) return;
   inputs[id].value = formatInputCurrency(num);
+  updateKorText(id);
 }
 
 currencyIds.forEach(id => {
@@ -269,9 +322,35 @@ scrollTopBtn.addEventListener('click', () => {
 
 // ── 이벤트 리스너 바인딩 (CSP 우회용) ──────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  // 한글 금액 표기용 div 생성 및 바인딩
+  currencyIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el && el.parentNode) {
+      const korDiv = document.createElement('div');
+      korDiv.id = id + '_kor';
+      korDiv.className = 'kor-text';
+      korDiv.style.fontSize = '12px';
+      korDiv.style.color = 'var(--primary)';
+      korDiv.style.textAlign = 'right';
+      korDiv.style.marginTop = '4px';
+      korDiv.style.fontWeight = '600';
+      
+      // input과 같은 레벨로 삽입
+      el.parentNode.appendChild(korDiv);
+      
+      // 입력이나 포커스 이동 시 업데이트
+      el.addEventListener('input', () => updateKorText(id));
+      el.addEventListener('blur', () => updateKorText(id));
+      
+      // 초기 업데이트
+      updateKorText(id);
+    }
+  });
+
   // 탭 네비게이션
   const tabCalc = document.getElementById('tab-calc');
   const tabSaved = document.getElementById('tab-saved');
+  
   if (tabCalc) tabCalc.addEventListener('click', () => switchTab('calc'));
   if (tabSaved) tabSaved.addEventListener('click', () => switchTab('saved'));
 

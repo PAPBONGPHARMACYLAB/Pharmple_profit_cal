@@ -169,49 +169,48 @@ async function renderSavedList() {
     return;
   }
 
-  // 요약 테이블 (항상 표시)
+  // 요약 카드 (세로 배열)
   const summaryRows = list.map(item => {
     const d = new Date(item.created_at).toLocaleDateString('ko-KR');
     return `
-      <tr class="summary-row" data-id="${item.id}">
-        <td>${pharmTypeLabel(item.pharm_type)}</td>
-        <td><strong>${item.pharmacy_name}</strong></td>
-        <td>${item.feature_note || '-'}</td>
-        <td>
+      <div class="card saved-item-card" data-id="${item.id}" style="margin-bottom: 12px; padding: 16px; border: 1px solid var(--border); border-radius: 8px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+          <div>
+            <span style="font-size: 12px; font-weight: 600; color: var(--primary); background: #EEF2FF; padding: 2px 6px; border-radius: 4px; margin-right: 4px;">
+              ${pharmTypeLabel(item.pharm_type)}
+            </span>
+            <strong style="font-size: 15px; color: var(--text-main);">${item.pharmacy_name}</strong>
+          </div>
+          <span style="font-size: 11px; color: #9CA3AF;">${d}</span>
+        </div>
+        
+        <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 8px;">
+          <strong>특이사항:</strong> ${item.feature_note || '-'}
+        </div>
+        
+        <div style="margin-bottom: 12px;">
+          <strong style="font-size: 13px; color: var(--text-muted); display: block; margin-bottom: 4px;">1개월 후 상황:</strong>
           <input class="after-month-input" type="text" value="${item.after_one_month || ''}"
             placeholder="메모 입력..." data-id="${item.id}"
-            style="width:100%; border:1px solid #E5E7EB; border-radius:4px; padding:4px 6px; font-size:12px;">
-        </td>
-        <td style="white-space:nowrap; font-size:12px; color:#9CA3AF;">${d}</td>
-        <td>
-          <button class="detail-toggle-btn" data-id="${item.id}" style="background:none; border:1px solid #E5E7EB; border-radius:4px; padding:2px 8px; cursor:pointer; font-size:12px;">상세</button>
-          <button class="delete-btn" data-id="${item.id}" style="background:none; border:1px solid #FCA5A5; border-radius:4px; padding:2px 8px; cursor:pointer; font-size:12px; color:#EF4444;">삭제</button>
-        </td>
-      </tr>
-      <tr class="detail-row" id="detail-${item.id}" style="display:none;">
-        <td colspan="6" style="padding:0;">
+            style="width:100%; border:1px solid #E5E7EB; border-radius:6px; padding:6px 8px; font-size:13px; box-sizing: border-box;">
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 8px;">
+          <button class="detail-toggle-btn" data-id="${item.id}" style="background:none; border:1px solid #E5E7EB; border-radius:6px; padding:6px 12px; cursor:pointer; font-size:13px; font-weight: 500;">상세 보기</button>
+          <button class="delete-btn" data-id="${item.id}" style="background:none; border:1px solid #FCA5A5; border-radius:6px; padding:6px 12px; cursor:pointer; font-size:13px; font-weight: 500; color:#EF4444;">삭제</button>
+        </div>
+
+        <div class="detail-row" id="detail-${item.id}" style="display:none; margin-top: 12px; border-top: 1px dashed #E5E7EB; padding-top: 12px;">
           <div class="detail-content">
             ${buildDetailTable(item.input_data, item.result_data)}
           </div>
-        </td>
-      </tr>`;
+        </div>
+      </div>`;
   }).join('');
 
   container.innerHTML = `
-    <div style="overflow-x:auto;">
-      <table class="summary-table">
-        <thead>
-          <tr>
-            <th>형태</th>
-            <th>약국명</th>
-            <th>특이사항</th>
-            <th>1개월 후 상황</th>
-            <th>날짜</th>
-            <th>액션</th>
-          </tr>
-        </thead>
-        <tbody>${summaryRows}</tbody>
-      </table>
+    <div style="padding: 0 16px;">
+      ${summaryRows}
     </div>`;
 
   // 상세 토글

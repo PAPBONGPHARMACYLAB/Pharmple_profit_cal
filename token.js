@@ -70,6 +70,18 @@ async function consumeToken() {
 
   if (error) throw new Error('토큰 차감 실패: ' + error.message);
 
+  // 토큰 사용 내역 기록 (실패해도 진행은 되게 처리)
+  window.supabaseClient
+    .from('token_usage_history')
+    .insert({
+      user_id: user.id,
+      usage_type: 'calculation',
+      amount: -1,
+      description: '약국 수익 계산'
+    }).then(({ error: usageErr }) => {
+      if (usageErr) console.error('토큰 사용 내역 기록 실패:', usageErr);
+    });
+
   _tokenCache.tokens = status.tokens - 1;
   refreshTokenDisplay();
   return true;
@@ -79,6 +91,12 @@ async function consumeToken() {
 function refreshTokenDisplay() {
   const tokenDisplay = document.getElementById('token-display');
   const tokenCountEl = document.getElementById('token-count');
+  
+  const ttPlanName = document.getElementById('tt-plan-name');
+  const ttCreditsLeft = document.getElementById('tt-credits-left');
+  const ttProgressFill = document.getElementById('tt-progress-fill');
+  const ttFooterText = document.getElementById('tt-footer-text');
+
   if (!tokenDisplay || !tokenCountEl) return;
 
   if (!_tokenCache) {
@@ -87,13 +105,30 @@ function refreshTokenDisplay() {
   }
 
   tokenDisplay.style.display = 'flex';
+  
   if (_tokenCache.isUnlimited) {
     tokenCountEl.textContent = '∞';
     tokenDisplay.style.background = '#FEF3C7';
     tokenDisplay.style.color = '#92400E';
+    
+    // Tooltip update
+    if (ttPlanName) ttPlanName.textContent = '👑 무제한 구독 (Pro)';
+    if (ttCreditsLeft) ttCreditsLeft.textContent = '무제한';
+    if (ttProgressFill) {
+      ttProgressFill.style.width = '100%';
+      ttProgressFill.style.background = '#10B981'; // Green
+    }
+    if (ttFooterText) {
+      if (_tokenCache.subExpires) {
+        ttFooterText.textContent = `구독 만료일: ${new Date(_tokenCache.subExpires).toLocaleDateString('ko-KR')}`;
+      } else {
+        ttFooterText.textContent = '평생 무제한 요금제입니다.';
+      }
+    }
   } else {
     tokenCountEl.textContent = _tokenCache.tokens;
     const count = _tokenCache.tokens;
+    
     if (count === 0) {
       tokenDisplay.style.background = '#FEE2E2';
       tokenDisplay.style.color = '#991B1B';
@@ -103,6 +138,27 @@ function refreshTokenDisplay() {
     } else {
       tokenDisplay.style.background = '#EEF2FF';
       tokenDisplay.style.color = '#4F46E5';
+    }
+
+    // Tooltip update
+    if (ttPlanName) ttPlanName.textContent = '⚡ 종량제 (일반)';
+    if (ttCreditsLeft) ttCreditsLeft.textContent = `${count}개 남음`;
+    
+    if (ttProgressFill) {
+      // Calculate a reasonable total for the progress bar based on current tokens
+      let total = 5;
+      if (count > 5) total = 10;
+      if (count > 10) total = 100;
+      if (count > 100) total = Math.ceil(count / 100) * 100;
+      if (count === 0) total = 1; // Prevent division by zero
+
+      const pct = Math.min(100, Math.max(0, (count / total) * 100));
+      ttProgressFill.style.width = `${pct}%`;
+      ttProgressFill.style.background = pct < 20 ? '#EF4444' : 'var(--primary)';
+    }
+
+    if (ttFooterText) {
+      ttFooterText.textContent = '계산 시 알약 1개가 차감됩니다.';
     }
   }
 }
