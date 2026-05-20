@@ -236,9 +236,10 @@ input[type="radio"] {
 .scroll-top-btn {
   position: fixed;
   bottom: 24px;
-  right: 24px;
-  width: 44px;
-  height: 44px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 35px;
+  height: 35px;
   border-radius: 50%;
   background-color: #1F2937;
   color: white;
@@ -261,7 +262,7 @@ input[type="radio"] {
 
 .scroll-top-btn:hover {
   background-color: #111827;
-  transform: translateY(-3px);
+  transform: translateX(-50%) translateY(-3px);
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
 }
 

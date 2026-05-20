@@ -141,7 +141,7 @@ function refreshTokenDisplay() {
     }
 
     // Tooltip update
-    if (ttPlanName) ttPlanName.textContent = '⚡ 종량제 (일반)';
+    if (ttPlanName) ttPlanName.textContent = '⚡ 일반';
     if (ttCreditsLeft) ttCreditsLeft.textContent = `${count}개 남음`;
 
     if (ttProgressFill) {

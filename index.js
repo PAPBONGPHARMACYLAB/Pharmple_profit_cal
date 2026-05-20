@@ -1,5 +1,9 @@
 // index.js
 
+window.freeCalculationsCount = 0;
+window.freeCalculationsPerItem = {}; // { [itemId]: 남은 무료 횟수 }
+window.currentRecalcItemId = null;  // 현재 다시 계산 중인 항목 ID
+
 // ── 탭 전환 ────────────────────────────────────────────
 function switchTab(tab) {
   document.getElementById('pane-calc').style.display = tab === 'calc' ? 'flex' : 'none';
@@ -164,21 +168,42 @@ function formatOutputCurrency(num) {
   return Math.round(num).toLocaleString('ko-KR') + '원';
 }
 
-// ── 계산 실행 (토큰 소비) ─────────────────────────────
+// ── 계산 실행 (토큰 소비 or 무료) ─────────────────────────────
 calculateBtn.addEventListener('click', async () => {
-  // 토큰 확인
-  const available = await window.tokenAPI.getAvailableTokens();
-  if (available <= 0) {
-    window.tokenAPI.showTokenModal();
-    return;
+  let skipToken = false;
+  if (window.freeCalculationsCount > 0) {
+    window.freeCalculationsCount--;
+    skipToken = true;
+
+    // 항목별 횟수도 함께 차감
+    if (window.currentRecalcItemId) {
+      window.freeCalculationsPerItem[window.currentRecalcItemId] = window.freeCalculationsCount;
+    }
+
+    // 무료 버튼 카운트 업데이트 or 숨기기
+    const recalcFreeBtn = document.getElementById('recalc-free-btn');
+    const recalcFreeCount = document.getElementById('recalc-free-count');
+    if (recalcFreeCount) recalcFreeCount.textContent = window.freeCalculationsCount;
+    if (recalcFreeBtn && window.freeCalculationsCount <= 0) {
+      recalcFreeBtn.style.display = 'none';
+    }
   }
 
-  // 토큰 차감
-  try {
-    await window.tokenAPI.consumeToken();
-  } catch (e) {
-    window.tokenAPI.showTokenModal();
-    return;
+  if (!skipToken) {
+    // 토큰 확인
+    const available = await window.tokenAPI.getAvailableTokens();
+    if (available <= 0) {
+      window.tokenAPI.showTokenModal();
+      return;
+    }
+
+    // 토큰 차감
+    try {
+      await window.tokenAPI.consumeToken();
+    } catch (e) {
+      window.tokenAPI.showTokenModal();
+      return;
+    }
   }
 
   // ── 계산 로직 ──
@@ -219,6 +244,14 @@ calculateBtn.addEventListener('click', async () => {
     resultsPane.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, 100);
 });
+
+// ── 다시 계산하기 무료 버튼 → calculateBtn 트리거 ───────────────────
+const recalcFreeBtn = document.getElementById('recalc-free-btn');
+if (recalcFreeBtn) {
+  recalcFreeBtn.addEventListener('click', () => {
+    calculateBtn.click();
+  });
+}
 
 // ── 데이터 추출 ────────────────────────────────────────
 extractBtn.addEventListener('click', async () => {
