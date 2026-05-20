@@ -138,7 +138,10 @@ function pharmTypeLabel(type) {
 }
 
 // ── 입력값 테이블 행 생성 ───────────────────────────────
-function buildDetailTable(inputData, resultData) {
+function buildDetailTable(item) {
+  const inputData = item.input_data;
+  const resultData = item.result_data;
+
   const labelMap = {
     v1_deposit: '보증금', v2_rent: '월세(임차료)', v3_maintenance: '관리비',
     v4_premium: '권리금(인테리어)', v5_consulting: '컨설팅비', v6_size: '약국 평수(평)',
@@ -173,6 +176,9 @@ function buildDetailTable(inputData, resultData) {
       <thead><tr><th>항목</th><th>값</th></tr></thead>
       <tbody>${rows}${resRows}</tbody>
     </table>
+    <div style="margin-top: 16px;">
+      <button class="recalc-btn btn" data-id="${item.id}" style="padding: 10px 24px; font-size: 14px; width: 100%; background: #EEF2FF; color: var(--primary); border: 1px solid var(--primary); border-radius: 8px; font-weight: bold; cursor: pointer;">🔄 다시 계산하기</button>
+    </div>
   `;
 }
 
@@ -225,13 +231,14 @@ async function renderSavedList() {
         </div>
 
         <div style="display: flex; justify-content: flex-end; gap: 8px;">
+          <button class="edit-feature-btn" data-id="${item.id}" data-current="${item.feature_note || ''}" style="background:none; border:1px solid #9CA3AF; border-radius:6px; padding:6px 12px; cursor:pointer; font-size:13px; font-weight: 500; color:#4B5563;">수정</button>
           <button class="detail-toggle-btn" data-id="${item.id}" style="background:none; border:1px solid #E5E7EB; border-radius:6px; padding:6px 12px; cursor:pointer; font-size:13px; font-weight: 500;">상세 보기</button>
           <button class="delete-btn" data-id="${item.id}" style="background:none; border:1px solid #FCA5A5; border-radius:6px; padding:6px 12px; cursor:pointer; font-size:13px; font-weight: 500; color:#EF4444;">삭제</button>
         </div>
 
         <div class="detail-row" id="detail-${item.id}" style="display:none; margin-top: 12px; border-top: 1px dashed #E5E7EB; padding-top: 12px;">
           <div class="detail-content">
-            ${buildDetailTable(item.input_data, item.result_data)}
+            ${buildDetailTable(item)}
           </div>
         </div>
       </div>`;
@@ -242,7 +249,77 @@ async function renderSavedList() {
       ${summaryRows}
     </div>`;
 
-  // 상세 토글
+  // ── 다시 계산하기 ──────────────────────────────────
+  container.querySelectorAll('.recalc-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      const item = list.find(x => x.id === id);
+      if (!item) return;
+
+      const inputData = item.input_data;
+      
+      // 약국 형태 세팅
+      const radios = document.getElementsByName('pharm_type');
+      radios.forEach(r => {
+        if (r.value === item.pharm_type) r.checked = true;
+      });
+
+      // 입력 필드 복원
+      for (const key in inputData) {
+        const el = document.getElementById(key);
+        if (el) {
+          el.value = inputData[key];
+          el.dispatchEvent(new Event('input')); // 한글 표기 등 트리거
+        }
+      }
+
+      // 저장용 전역 데이터 복원
+      window.extractedContactInfo = {
+        pharmacyName: item.pharmacy_name,
+        companyName: inputData.companyName || '',
+        representative: inputData.representative || '',
+        mainPhone: inputData.mainPhone || '',
+        mobilePhone: inputData.mobilePhone || '',
+        consultingNote: inputData.consultingNote || ''
+      };
+
+      // 특이사항도 복원하고 싶다면 계산기 탭에 별도 필드가 없으므로 생략.
+
+      // 계산기 탭으로 전환
+      const calcTab = document.getElementById('tab-calc');
+      if (calcTab) calcTab.click();
+    });
+  });
+
+  // ── 특이사항 수정 ─────────────────────────────────
+  container.querySelectorAll('.edit-feature-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = btn.dataset.id;
+      const currentNote = btn.dataset.current;
+      const newNote = prompt('특이사항을 수정하세요:', currentNote);
+      
+      if (newNote !== null && newNote.trim() !== currentNote) {
+        btn.textContent = '수정 중...';
+        btn.disabled = true;
+        
+        try {
+          const { error } = await window.supabaseClient
+            .from('calculations')
+            .update({ feature_note: newNote.trim() })
+            .eq('id', id);
+            
+          if (error) throw new Error(error.message);
+          renderSavedList(); // 목록 새로고침
+        } catch (e) {
+          alert('수정 실패: ' + e.message);
+          btn.textContent = '수정';
+          btn.disabled = false;
+        }
+      }
+    });
+  });
+
+  // ── 상세 토글 ─────────────────────────────────────
   container.querySelectorAll('.detail-toggle-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const id = btn.dataset.id;
