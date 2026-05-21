@@ -186,7 +186,7 @@ async function openPolarCheckout(productId) {
       },
       body: JSON.stringify({
         product_id: productId,
-        customer_external_id: user.id,  // Supabase user ID → webhook에서 토큰 지급에 사용
+        external_customer_id: user.id,  // Supabase user ID → webhook에서 토큰 지급에 사용
       }),
     });
 

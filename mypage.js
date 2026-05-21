@@ -106,19 +106,22 @@ async function loadPaymentHistory() {
   const { data: { user } } = await window.supabaseClient.auth.getUser();
   if (!user) return;
 
-  const { data, error } = await window.supabaseClient
+  // 1. Polar 결제 내역 조회
+  const { data: polarData, error: polarError } = await window.supabaseClient
     .from('polar_orders')
     .select('product_id, tokens_granted, processed_at')
+    .eq('user_id', user.id);
+
+  // 2. 관리자 토큰 지급 내역 조회 (양수 금액만)
+  const { data: adminData, error: adminError } = await window.supabaseClient
+    .from('token_usage_history')
+    .select('usage_type, amount, description, created_at')
     .eq('user_id', user.id)
-    .order('processed_at', { ascending: false });
+    .eq('usage_type', 'admin_grant')
+    .gt('amount', 0);
 
-  if (error) {
+  if (polarError || adminError) {
     listContainer.innerHTML = '<p style="text-align:center; color:red; padding:20px;">결제 내역을 불러올 수 없습니다.</p>';
-    return;
-  }
-
-  if (!data || data.length === 0) {
-    listContainer.innerHTML = '<p style="text-align:center; color:var(--text-muted); padding:20px;">결제 내역이 없습니다.</p>';
     return;
   }
 
@@ -129,19 +132,59 @@ async function loadPaymentHistory() {
       'pills_100': '알약 100개',
       'sub_week': '1주일 구독권',
       'sub_month': '1달 구독권',
-      'sub_life': '무제한 평생 구독권'
+      'sub_life': '무제한 평생 구독권',
+      // Polar product UUIDs
+      '4155d1da-c200-4205-9724-c6b90761a4ba': '알약 5개',
+      '853935c6-9253-460c-b06f-f32b5cfc34c1': '알약 10개',
+      'b8750c72-2d4d-4e50-b139-2117ad2aa808': '알약 100개',
+      '4f9feec4-36cd-41dc-bf31-7975dde9dc5c': '1주일 구독권',
+      'f6ef5473-6978-49f5-b5d2-730cc9f83c05': '1달 구독권',
+      '4aa54712-2102-4448-b76b-888767f4813b': '무제한 평생 구독권'
     };
     return names[pid] || pid;
   };
 
-  listContainer.innerHTML = data.map(item => `
+  // 3. 두 내역 통합 및 가공
+  const combined = [];
+
+  if (polarData) {
+    polarData.forEach(item => {
+      combined.push({
+        name: getProductName(item.product_id),
+        date: new Date(item.processed_at),
+        amountText: item.tokens_granted > 0 ? '+' + item.tokens_granted + '개' : '구독/기타',
+        isService: false
+      });
+    });
+  }
+
+  if (adminData) {
+    adminData.forEach(item => {
+      combined.push({
+        name: `서비스 알약 ${item.amount}개`,
+        date: new Date(item.created_at),
+        amountText: `+${item.amount}개`,
+        isService: true
+      });
+    });
+  }
+
+  // 날짜 내림차순 정렬
+  combined.sort((a, b) => b.date - a.date);
+
+  if (combined.length === 0) {
+    listContainer.innerHTML = '<p style="text-align:center; color:var(--text-muted); padding:20px;">결제 내역이 없습니다.</p>';
+    return;
+  }
+
+  listContainer.innerHTML = combined.map(item => `
     <div style="padding:12px; border:1px solid var(--border); border-radius:8px; display:flex; justify-content:space-between; align-items:center;">
       <div>
-        <div style="font-weight:600; font-size:14px;">${getProductName(item.product_id)}</div>
-        <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">${new Date(item.processed_at).toLocaleString('ko-KR')}</div>
+        <div style="font-weight:600; font-size:14px;">${item.name}</div>
+        <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">${item.date.toLocaleString('ko-KR')}</div>
       </div>
-      <div style="font-weight:600; color:var(--primary); font-size:14px;">
-        ${item.tokens_granted > 0 ? '+' + item.tokens_granted + '개' : '구독/기타'}
+      <div style="font-weight:600; color:${item.isService ? '#10B981' : 'var(--primary)'}; font-size:14px;">
+        ${item.amountText}
       </div>
     </div>
   `).join('');
