@@ -45,12 +45,16 @@ function openSaveModal() {
     const rep = document.getElementById('save-representative');
     const mPhone = document.getElementById('save-main-phone');
     const moPhone = document.getElementById('save-mobile-phone');
+    const fNote = document.getElementById('save-feature-note');
+    const cNote = document.getElementById('save-consulting-note');
     
     if (pName) pName.value = info.pharmacyName || '';
     if (cName) cName.value = info.companyName || '';
     if (rep) rep.value = info.representative || '';
     if (mPhone) mPhone.value = info.mainPhone || '';
     if (moPhone) moPhone.value = info.mobilePhone || '';
+    if (fNote) fNote.value = info.featureNote || '';
+    if (cNote) cNote.value = info.consultingNote || '';
   }
 
   const modal = document.getElementById('save-modal');
@@ -261,7 +265,7 @@ async function renderSavedList() {
         </div>
 
         <div style="display: flex; justify-content: flex-end; gap: 8px;">
-          <button class="edit-feature-btn" data-id="${item.id}" data-current="${item.feature_note || ''}" data-consulting="${item.input_data?.consultingNote || ''}" style="background:none; border:1px solid #9CA3AF; border-radius:6px; padding:6px 12px; cursor:pointer; font-size:13px; font-weight: 500; color:#4B5563;">수정</button>
+          <button class="edit-feature-btn" data-id="${item.id}" data-name="${item.pharmacy_name || ''}" data-current="${item.feature_note || ''}" data-consulting="${item.input_data?.consultingNote || ''}" style="background:none; border:1px solid #9CA3AF; border-radius:6px; padding:6px 12px; cursor:pointer; font-size:13px; font-weight: 500; color:#4B5563;">수정</button>
           <button class="detail-toggle-btn" data-id="${item.id}" style="background:none; border:1px solid #E5E7EB; border-radius:6px; padding:6px 12px; cursor:pointer; font-size:13px; font-weight: 500;">상세 보기</button>
           <button class="delete-btn" data-id="${item.id}" style="background:none; border:1px solid #FCA5A5; border-radius:6px; padding:6px 12px; cursor:pointer; font-size:13px; font-weight: 500; color:#EF4444;">삭제</button>
         </div>
@@ -311,7 +315,8 @@ async function renderSavedList() {
           representative: inputData.representative || '',
           mainPhone: inputData.mainPhone || '',
           mobilePhone: inputData.mobilePhone || '',
-          consultingNote: inputData.consultingNote || ''
+          consultingNote: inputData.consultingNote || '',
+          featureNote: item.feature_note || ''
         };
         // recalc-free-btn 숨기기 (알약 소비 버튼만 보이도록)
         const recalcFreeBtn = document.getElementById('recalc-free-btn');
@@ -359,7 +364,8 @@ async function renderSavedList() {
         representative: inputData.representative || '',
         mainPhone: inputData.mainPhone || '',
         mobilePhone: inputData.mobilePhone || '',
-        consultingNote: inputData.consultingNote || ''
+        consultingNote: inputData.consultingNote || '',
+        featureNote: item.feature_note || ''
       };
 
       // 특이사항도 복원하고 싶다면 계산기 탭에 별도 필드가 없으므로 생략.
@@ -370,20 +376,23 @@ async function renderSavedList() {
     });
   });
 
-  // ── 특이사항 및 컨설팅 특징 수정 (모달 방식) ───────────────────────
+  // ── 약국명, 특이사항, 컨설팅 특징 수정 (모달 방식) ───────────────────────
   container.querySelectorAll('.edit-feature-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const id = btn.dataset.id;
-      const currentNote = btn.dataset.current;
-      const currentConsulting = btn.dataset.consulting;
+      const currentName = btn.dataset.name || '';
+      const currentNote = btn.dataset.current || '';
+      const currentConsulting = btn.dataset.consulting || '';
 
       const modal = document.getElementById('edit-note-modal');
+      const nameInput = document.getElementById('edit-note-name');
       const featureTA = document.getElementById('edit-note-feature');
       const consultingTA = document.getElementById('edit-note-consulting');
       const cancelBtn = document.getElementById('edit-note-cancel');
       const saveBtn = document.getElementById('edit-note-save');
 
       // 기존 값 주입
+      if (nameInput) nameInput.value = currentName;
       featureTA.value = currentNote;
       consultingTA.value = currentConsulting;
 
@@ -403,10 +412,16 @@ async function renderSavedList() {
 
       // 저장
       newSaveBtn.addEventListener('click', async () => {
+        const newName = nameInput ? nameInput.value.trim() : '';
         const newNote = featureTA.value.trim();
         const newConsulting = consultingTA.value.trim();
 
-        if (newNote === currentNote && newConsulting === currentConsulting) {
+        if (!newName) {
+          alert('약국명을 입력해주세요.');
+          return;
+        }
+
+        if (newName === currentName && newNote === currentNote && newConsulting === currentConsulting) {
           modal.style.display = 'none';
           return;
         }
@@ -424,6 +439,7 @@ async function renderSavedList() {
           const { error } = await window.supabaseClient
             .from('calculations')
             .update({
+              pharmacy_name: newName,
               feature_note: newNote,
               input_data: updatedInputData
             })

@@ -96,6 +96,99 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       return new RegExp(`(?:${kw})(?:\\([^)]*\\))?[\\s:\\-\\t\\n]*([0-9,\\.]+(?:\\s*[만억천])?)`, 'i');
     }
 
+    function parseAreaValue(valStr) {
+      if (!valStr) return null;
+      // 1. Check if the string explicitly contains a "평" value (e.g. "53.90㎡ (16.3평)", "16.3평")
+      const pyeongMatch = valStr.match(/([0-9,\.]+)\s*평/);
+      if (pyeongMatch && pyeongMatch[1]) {
+        let val = parseFloat(pyeongMatch[1].replace(/[^0-9\.]/g, ''));
+        if (val) return val;
+      }
+      // 2. Check if the string contains square meters (㎡, m2, m², 제곱미터)
+      const hasSqMeter = valStr.includes('㎡') || valStr.includes('m2') || valStr.includes('m²') || valStr.includes('제곱미터');
+      // 3. Extract the first number from the string
+      const numMatch = valStr.match(/([0-9,\.]+)/);
+      if (numMatch && numMatch[1]) {
+        const val = parseFloat(numMatch[1].replace(/[^0-9\.]/g, ''));
+        if (val) {
+          if (hasSqMeter) {
+            return parseFloat((val / 3.305785).toFixed(4));
+          }
+          // If no unit is specified, default to square meters and convert
+          return parseFloat((val / 3.305785).toFixed(4));
+        }
+      }
+      return null;
+    }
+
+    function extractArea() {
+      // 1. Try table or DL structure first
+      const tableVal = getValueFromTableOrDl(['전용면적', '평수', '면적', '평']);
+      if (tableVal) {
+        const parsed = parseAreaValue(tableVal);
+        if (parsed !== null) return parsed;
+      }
+
+      // 2. Try matching from bodyText
+      // 2.1. First check if '평' unit is explicitly matched in body text
+      const pyeongMatch = bodyText.match(/([0-9,\.]+)\s*평/i);
+      if (pyeongMatch && pyeongMatch[1]) {
+        const val = parseFloat(pyeongMatch[1].replace(/[^0-9\.]/g, ''));
+        if (val) return val;
+      }
+
+      // 2.2. Check keywords with optional unit (㎡, m2, m², 제곱미터, 평)
+      const keywords = ['전용면적', '평수', '전용', '면적'];
+      const kwPattern = keywords.join('|');
+      const areaRegex = new RegExp(`(?:${kwPattern})(?:\\([^)]*\\))?[\\s:\\-\\t\\n]*([0-9,\\.]+)[\\s\\t]*(㎡|m2|m²|제곱미터|평)?`, 'i');
+      
+      const match = bodyText.match(areaRegex);
+      if (match && match[1]) {
+        const val = parseFloat(match[1].replace(/[^0-9\.]/g, ''));
+        const unit = match[2] ? match[2].toLowerCase() : '';
+        if (val) {
+          if (unit === '평') {
+            return val;
+          } else {
+            return parseFloat((val / 3.305785).toFixed(4));
+          }
+        }
+      }
+
+      // 2.3. General number followed by square meters
+      const generalSqMeterRegex = /([0-9,\.]+)[\\s\\t]*(㎡|m2|m²|제곱미터)/i;
+      const genMatch = bodyText.match(generalSqMeterRegex);
+      if (genMatch && genMatch[1]) {
+        const val = parseFloat(genMatch[1].replace(/[^0-9\.]/g, ''));
+        if (val) {
+          return parseFloat((val / 3.305785).toFixed(4));
+        }
+      }
+
+      // 2.4. Backup keywords match without unit
+      const backupRegexes = [
+        buildReg(['전용면적', '평수']),
+        buildReg(['전용', '면적', '평'])
+      ];
+      for (let reg of backupRegexes) {
+        let backupMatch = bodyText.match(reg);
+        if (backupMatch && backupMatch[1]) {
+          let val = parseFloat(backupMatch[1].replace(/[^0-9\.]/g, ''));
+          if (val) {
+            const matchedContext = bodyText.substring(Math.max(0, backupMatch.index - 5), Math.min(bodyText.length, backupMatch.index + backupMatch[0].length + 10));
+            if (matchedContext.includes('평')) {
+              return val;
+            } else {
+              return parseFloat((val / 3.305785).toFixed(4));
+            }
+          }
+        }
+      }
+
+      return null;
+    }
+
+
     // ──────────────────────────────────────────
     // 금융 변수 추출용 테이블/DL 및 정적 패턴 백업 도구
     // ──────────────────────────────────────────
@@ -175,16 +268,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     // 5) 컨설팅비 (v5) 추출
     data.v5 = extractWithTableBackup(['컨설팅비', '컨설팅'], [buildReg(['컨설팅비']), buildReg(['컨비', '컨'])], false);
 
-    // 6) 평수 (v6) 추출
-    data.v6 = extractWithTableBackup(
-      ['전용면적', '평수', '면적', '평'],
-      [
-        /([0-9,\.]+)\s*평/i,
-        buildReg(['전용면적', '평수']),
-        buildReg(['전용', '면적', '평'])
-      ],
-      false
-    );
+    // 6) 평수 (v6) 추출 (㎡ -> 평 변환 포함)
+    data.v6 = extractArea();
 
     // 7) 월 조제료 (v7) 추출
     data.v7 = extractWithTableBackup(
