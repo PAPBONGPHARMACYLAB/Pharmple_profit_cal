@@ -239,8 +239,8 @@ async function renderSavedList() {
   const summaryRows = list.map(item => {
     const d = new Date(item.created_at).toLocaleDateString('ko-KR');
     return `
-      <div class="card saved-item-card" data-id="${item.id}" style="margin-bottom: 12px; padding: 16px; border: 1px solid var(--border); border-radius: 8px;">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+      <div class="card saved-item-card" data-id="${item.id}" style="margin-bottom: 12px; padding: 16px; border: 1px solid var(--border); border-radius: 8px; line-height: 1.45;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 11px;">
           <div>
             <span style="font-size: 12px; font-weight: 600; color: var(--primary); background: #EEF2FF; padding: 2px 6px; border-radius: 4px; margin-right: 4px;">
               ${pharmTypeLabel(item.pharm_type)}
@@ -250,18 +250,18 @@ async function renderSavedList() {
           <span style="font-size: 11px; color: #9CA3AF;">${d}</span>
         </div>
         
-        <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">
+        <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 6px;">
           <strong>특이사항(전화 or 카톡으로 알게된 정보):</strong> ${item.feature_note || '-'}
         </div>
-        <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 8px;">
+        <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 11px;">
           <strong>컨설팅 특징:</strong> ${item.input_data?.consultingNote || '-'}
         </div>
         
-        <div style="margin-bottom: 12px;">
-          <strong style="font-size: 13px; color: var(--text-muted); display: block; margin-bottom: 4px;">임장 후 상황(1,3,6개월 후):</strong>
+        <div style="margin-bottom: 16px;">
+          <strong style="font-size: 13px; color: var(--text-muted); display: block; margin-bottom: 6px;">임장 후 상황(1,3,6개월 후):</strong>
           <input class="after-month-input" type="text" value="${item.after_one_month || ''}"
             placeholder="메모 입력..." data-id="${item.id}"
-            style="width:100%; border:1px solid #E5E7EB; border-radius:6px; padding:6px 8px; font-size:13px; box-sizing: border-box;">
+            style="width:100%; border:1px solid #E5E7EB; border-radius:6px; padding:6px 8px; font-size:13px; box-sizing: border-box; font-family: inherit;">
         </div>
 
         <div style="display: flex; justify-content: flex-end; gap: 8px;">
