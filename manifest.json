@@ -3,17 +3,25 @@
   "name": "약국 수익 계산기",
   "version": "1.0",
   "description": "팜플, 팜올플러스, 데일리팜의 정보를 기반으로 약국 수익을 계산합니다.",
+  "icons": {
+    "16": "logo.png",
+    "48": "logo.png",
+    "128": "logo.png"
+  },
   "action": {
     "default_title": "약국 수익 계산기"
   },
   "permissions": [
     "activeTab",
     "scripting",
-    "sidePanel"
+    "sidePanel",
+    "storage",
+    "identity"
   ],
   "host_permissions": [
     "http://*/*",
-    "https://*/*"
+    "https://*/*",
+    "https://api.polar.sh/*"
   ],
   "side_panel": {
     "default_path": "index.html"
