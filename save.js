@@ -238,8 +238,17 @@ async function renderSavedList() {
   // 요약 카드 (세로 배열)
   const summaryRows = list.map(item => {
     const d = new Date(item.created_at).toLocaleDateString('ko-KR');
+    const searchText = [
+      item.pharmacy_name || '',
+      item.pharm_type || '',
+      item.feature_note || '',
+      item.input_data?.consultingNote || '',
+      item.after_one_month || '',
+      JSON.stringify(item.input_data || {})
+    ].join(' ').toLowerCase();
+
     return `
-      <div class="card saved-item-card" data-id="${item.id}" style="margin-bottom: 12px; padding: 16px; border: 1px solid var(--border); border-radius: 8px; line-height: 1.45;">
+      <div class="card saved-item-card" data-id="${item.id}" data-search="${searchText.replace(/"/g, '&quot;')}" style="margin-bottom: 12px; padding: 16px; border: 1px solid var(--border); border-radius: 8px; line-height: 1.45;">
         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 11px;">
           <div>
             <span style="font-size: 12px; font-weight: 600; color: var(--primary); background: #EEF2FF; padding: 2px 6px; border-radius: 4px; margin-right: 4px;">
@@ -282,6 +291,35 @@ async function renderSavedList() {
     <div style="padding: 0 16px;">
       ${summaryRows}
     </div>`;
+
+  // ── 검색 필터 연결 ──────────────────────────────────────
+  const searchInput = document.getElementById('saved-search-input');
+  const searchCount = document.getElementById('saved-search-count');
+  if (searchInput) {
+    // 이전 이벤트 리스너 중복 방지
+    const newInput = searchInput.cloneNode(true);
+    searchInput.parentNode.replaceChild(newInput, searchInput);
+
+    newInput.addEventListener('input', () => {
+      const query = newInput.value.trim().toLowerCase();
+      const cards = container.querySelectorAll('.saved-item-card');
+      let visibleCount = 0;
+
+      cards.forEach(card => {
+        const text = (card.dataset.search || '').toLowerCase();
+        const match = !query || text.includes(query);
+        card.style.display = match ? '' : 'none';
+        if (match) visibleCount++;
+      });
+
+      if (query) {
+        searchCount.style.display = 'block';
+        searchCount.textContent = `검색 결과: ${visibleCount}건`;
+      } else {
+        searchCount.style.display = 'none';
+      }
+    });
+  }
 
   // ── 다시 계산하기: 계산 탭에 다시계산하기 버튼 표시 ──
   container.querySelectorAll('.recalc-btn').forEach(btn => {

@@ -127,15 +127,17 @@ async function loadPaymentHistory() {
 
   const getProductName = (pid) => {
     const names = {
-      'pills_5': '알약 5개',
-      'pills_10': '알약 10개',
+      'pills_5':   '알약 5개',
+      'pills_10':  '알약 10개',
+      'pills_50':  '알약 50개',
       'pills_100': '알약 100개',
-      'sub_week': '1주일 구독권',
+      'sub_week':  '1주일 구독권',
       'sub_month': '1달 구독권',
-      'sub_life': '무제한 평생 구독권',
+      'sub_life':  '무제한 평생 구독권',
       // Polar product UUIDs
       '4155d1da-c200-4205-9724-c6b90761a4ba': '알약 5개',
       '853935c6-9253-460c-b06f-f32b5cfc34c1': '알약 10개',
+      'ba73a3d4-a6ca-4683-968a-77ec15c0e75a': '알약 50개',
       'b8750c72-2d4d-4e50-b139-2117ad2aa808': '알약 100개',
       '4f9feec4-36cd-41dc-bf31-7975dde9dc5c': '1주일 구독권',
       'f6ef5473-6978-49f5-b5d2-730cc9f83c05': '1달 구독권',
