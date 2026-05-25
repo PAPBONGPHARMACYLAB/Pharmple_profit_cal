@@ -422,6 +422,55 @@ document.addEventListener('DOMContentLoaded', () => {
   if (saveCancelBtn) saveCancelBtn.addEventListener('click', () => window.saveAPI?.closeSaveModal());
   if (refreshSavedBtn) refreshSavedBtn.addEventListener('click', () => window.saveAPI?.renderSavedList());
 
+  // 새로 계산하기 버튼
+  const newCalcBtn = document.getElementById('new-calc-btn');
+  if (newCalcBtn) {
+    newCalcBtn.addEventListener('click', () => {
+      // 입력필드 전체 초기화
+      ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (el.readOnly) return; // readonly 필드는 다른 곳에서 자동 업데이트됨
+        el.value = '';
+        el.dispatchEvent(new Event('input'));
+      });
+      // 라디오 기본값 복원 (existing)
+      const radios = document.getElementsByName('pharm_type');
+      radios.forEach(r => { r.checked = r.value === 'existing'; });
+
+      // 기본값 0으로 채워야 하는 필드
+      const zeroFields = ['v18_interest_rate', 'v13_days', 'v12_otc_margin_rate', 'v20_weekly_hours'];
+      zeroFields.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) { el.value = '0'; el.dispatchEvent(new Event('input')); }
+      });
+
+      // 전역변수 초기화
+      window.freeCalculationsCount = 0;
+      window.currentRecalcItemId = null;
+      window.extractedContactInfo = null;
+
+      // 다시 계산하기 버튼 숨기기
+      const recalcFreeBtn = document.getElementById('recalc-free-btn');
+      if (recalcFreeBtn) recalcFreeBtn.style.display = 'none';
+
+      // 데이터 가져오기 영역 다시 표시
+      const actionCard = document.querySelector('.action-card');
+      if (actionCard) actionCard.style.display = '';
+
+      // 가져오기 상태 메시지 초기화
+      const statusMsgEl = document.getElementById('extract-status');
+      if (statusMsgEl) statusMsgEl.textContent = '';
+
+      // 계산 결과 숨기기
+      const resultsPaneEl = document.getElementById('results-pane');
+      if (resultsPaneEl) resultsPaneEl.style.display = 'none';
+
+      // 맨 위로 스크롤
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  }
+
   // 모달 닫기
   const tokenCloseBtn = document.getElementById('token-close-btn');
   if (tokenCloseBtn) tokenCloseBtn.addEventListener('click', () => window.tokenAPI?.closeTokenModal());

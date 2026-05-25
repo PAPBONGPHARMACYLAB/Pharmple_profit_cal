@@ -324,6 +324,10 @@ async function renderSavedList() {
         window.currentRecalcItemId = null;
         window.freeCalculationsCount = 0;
 
+        // 데이터 가져오기 영역 숨기기 (다시계산 모드 시)
+        const actionCard = document.querySelector('.action-card');
+        if (actionCard) actionCard.style.display = 'none';
+
         const calcTab = document.getElementById('tab-calc');
         if (calcTab) calcTab.click();
         return;
@@ -373,6 +377,10 @@ async function renderSavedList() {
       // 계산기 탭으로 전환
       const calcTab = document.getElementById('tab-calc');
       if (calcTab) calcTab.click();
+
+      // 데이터 가져오기 영역 숨기기
+      const actionCard = document.querySelector('.action-card');
+      if (actionCard) actionCard.style.display = 'none';
     });
   });
 

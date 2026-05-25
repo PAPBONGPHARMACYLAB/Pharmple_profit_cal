@@ -100,6 +100,7 @@ document.getElementById('mp-save-btn')?.addEventListener('click', async () => {
 
 // ── 2. 결제 내역 뷰 ──
 async function loadPaymentHistory() {
+  console.log("★ [약국 수익 계산기] loadPaymentHistory 호출됨! (v1.02)");
   const listContainer = document.getElementById('mp-payment-list');
   listContainer.innerHTML = '<p style="text-align:center; color:var(--text-muted); padding:20px;">불러오는 중...</p>';
 
@@ -112,13 +113,12 @@ async function loadPaymentHistory() {
     .select('product_id, tokens_granted, processed_at')
     .eq('user_id', user.id);
 
-  // 2. 관리자 토큰 지급 내역 조회 (양수 금액만)
+  // 2. 관리자 토큰 지급 내역 조회 (전체 가져오기)
   const { data: adminData, error: adminError } = await window.supabaseClient
     .from('token_usage_history')
     .select('usage_type, amount, description, created_at')
     .eq('user_id', user.id)
-    .eq('usage_type', 'admin_grant')
-    .gt('amount', 0);
+    .eq('usage_type', 'admin_grant');
 
   if (polarError || adminError) {
     listContainer.innerHTML = '<p style="text-align:center; color:red; padding:20px;">결제 내역을 불러올 수 없습니다.</p>';
@@ -153,20 +153,26 @@ async function loadPaymentHistory() {
         name: getProductName(item.product_id),
         date: new Date(item.processed_at),
         amountText: item.tokens_granted > 0 ? '+' + item.tokens_granted + '개' : '구독/기타',
-        isService: false
+        isService: false,
+        isPositive: true
       });
     });
   }
 
   if (adminData) {
-    adminData.forEach(item => {
-      combined.push({
-        name: `서비스 알약 ${item.amount}개`,
-        date: new Date(item.created_at),
-        amountText: `+${item.amount}개`,
-        isService: true
+    adminData
+      .filter(item => item.amount !== 0)
+      .forEach(item => {
+        const isPositive = item.amount > 0;
+        const absAmount = Math.abs(item.amount);
+        combined.push({
+          name: isPositive ? `서비스 알약 ${absAmount}개` : `서비스 알약 -${absAmount}개 차감`,
+          date: new Date(item.created_at),
+          amountText: isPositive ? `+${absAmount}개` : `-${absAmount}개`,
+          isService: true,
+          isPositive: isPositive
+        });
       });
-    });
   }
 
   // 날짜 내림차순 정렬
@@ -177,17 +183,23 @@ async function loadPaymentHistory() {
     return;
   }
 
-  listContainer.innerHTML = combined.map(item => `
-    <div style="padding:12px; border:1px solid var(--border); border-radius:8px; display:flex; justify-content:space-between; align-items:center;">
-      <div>
-        <div style="font-weight:600; font-size:14px;">${item.name}</div>
-        <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">${item.date.toLocaleString('ko-KR')}</div>
+  listContainer.innerHTML = combined.map(item => {
+    let color = 'var(--primary)';
+    if (item.isService) {
+      color = item.isPositive ? '#10B981' : '#EF4444'; // 지급은 초록, 회수는 빨강
+    }
+    return `
+      <div style="padding:12px; border:1px solid var(--border); border-radius:8px; display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <div style="font-weight:600; font-size:14px;">${item.name}</div>
+          <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">${item.date.toLocaleString('ko-KR')}</div>
+        </div>
+        <div style="font-weight:600; color:${color}; font-size:14px;">
+          ${item.amountText}
+        </div>
       </div>
-      <div style="font-weight:600; color:${item.isService ? '#10B981' : 'var(--primary)'}; font-size:14px;">
-        ${item.amountText}
-      </div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 }
 
 // ── 3. 알약 사용 내역 뷰 ──
